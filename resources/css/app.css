@@ -61,6 +61,24 @@
     .stat-badge {
         @apply glass-card p-4 text-center;
     }
+    .voice-message {
+        @apply flex items-center gap-2 bg-gradient-to-r from-purple-900/40 to-black/30 backdrop-blur-sm rounded-xl p-3 pr-4 border border-purple-500/20 shadow-lg;
+    }
+    .play-btn {
+        @apply w-10 h-10 flex items-center justify-center bg-gradient-to-br from-purple-500/40 to-purple-600/50 hover:from-purple-500/60 hover:to-purple-600/70 rounded-full transition-all flex-shrink-0 shadow-md cursor-pointer;
+    }
+    .play-icon, .pause-icon {
+        @apply w-5 h-5 text-white;
+    }
+    .voice-waveform {
+        @apply h-8 flex items-center gap-1;
+    }
+    .voice-waveform > div {
+        @apply w-1 bg-gradient-to-t from-purple-400/70 to-purple-300/90 rounded-full;
+    }
+    .preview-bar {
+        @apply w-0.5 bg-purple-400/60 rounded-full;
+    }
 }
 
 @layer utilities {
