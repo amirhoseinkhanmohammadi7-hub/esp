@@ -96,7 +96,7 @@
 
 @auth
 <script>
-// Check for pending chat requests
+// Check for pending chat requests and update badge
 async function checkChatRequests() {
     try {
         const response = await fetch('{{ route('chat.requests') }}', {
@@ -109,11 +109,16 @@ async function checkChatRequests() {
         const badge = document.getElementById('chatRequestBadge');
         if (result.requests && result.requests.length > 0) {
             badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
         }
     } catch (error) {
         console.error('Error checking chat requests:', error);
     }
 }
 document.addEventListener('DOMContentLoaded', checkChatRequests);
+
+// Refresh badge every 30 seconds
+setInterval(checkChatRequests, 30000);
 </script>
 @endauth

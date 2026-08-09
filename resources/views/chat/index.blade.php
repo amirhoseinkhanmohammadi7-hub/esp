@@ -92,8 +92,10 @@
 /**
  * Chat Requests Manager using Alpine.js
  */
+let chatRequestsManagerInstance = null;
+
 function chatRequestsManager() {
-    return {
+    const instance = {
         isLoading: true,
         requests: [],
         
@@ -110,7 +112,7 @@ function chatRequestsManager() {
                 this.renderRequests();
             } catch (error) {
                 console.error('Error loading requests:', error);
-                alert('{{ __('خطا در بارگذاری درخواست‌ها') }}');
+                document.getElementById('requestsList').innerHTML = '<p class="text-white/50 text-sm">{{ __('خطا در بارگذاری درخواست‌ها') }}</p>';
             } finally {
                 this.isLoading = false;
             }
@@ -127,19 +129,19 @@ function chatRequestsManager() {
             }
             
             container.innerHTML = this.requests.map(req => `
-                <div class="glass-card p-3 flex items-center justify-between gap-3 animate-fade-in">
+                <div class="glass-card p-3 flex items-center justify-between gap-3 animate-fade-in" data-request-id="${req.id}">
                     <div class="flex items-center gap-3">
                         <img src="${this.escapeHtml(req.sender.profile_picture_url)}" 
                              alt="${this.escapeHtml(req.sender.name)}" 
                              class="w-8 h-8 rounded-full object-cover">
                         <span class="text-sm">${this.escapeHtml(req.sender.name)}</span>
                     </div>
-                    <div class="flex gap-2" x-data="{ reqId: ${req.id} }">
-                        <button @click="$root.parentElement.parentElement.__x.$data.respondToRequest(reqId, 'accept')" 
+                    <div class="flex gap-2">
+                        <button onclick="chatRequestsManagerInstance.respondToRequest(${req.id}, 'accept')" 
                                 class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg text-xs transition-colors">
                             ✅ {{ __('قبول') }}
                         </button>
-                        <button @click="$root.parentElement.parentElement.__x.$data.respondToRequest(reqId, 'reject')" 
+                        <button onclick="chatRequestsManagerInstance.respondToRequest(${req.id}, 'reject')" 
                                 class="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-3 py-1.5 rounded-lg text-xs transition-colors">
                             ❌ {{ __('رد') }}
                         </button>
@@ -175,8 +177,12 @@ function chatRequestsManager() {
         
         updateBadge() {
             const badge = document.getElementById('chatRequestBadge');
-            if (badge && this.requests.length === 0) {
-                badge.classList.add('hidden');
+            if (badge) {
+                if (this.requests.length === 0) {
+                    badge.classList.add('hidden');
+                } else {
+                    badge.classList.remove('hidden');
+                }
             }
         },
         
@@ -190,6 +196,9 @@ function chatRequestsManager() {
             return document.querySelector('meta[name="csrf-token"]')?.content || '';
         }
     };
+    
+    chatRequestsManagerInstance = instance;
+    return instance;
 }
 </script>
 @endpush
