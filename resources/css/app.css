@@ -79,6 +79,14 @@
     .preview-bar {
         @apply w-0.5 bg-purple-400/60 rounded-full;
     }
+    /* Animation for voice waveform */
+    @keyframes wave-pulse {
+        0%, 100% { opacity: 0.5; transform: scaleY(0.8); }
+        50% { opacity: 1; transform: scaleY(1); }
+    }
+    .voice-waveform > div {
+        animation: wave-pulse 1s ease-in-out infinite;
+    }
 }
 
 @layer utilities {
