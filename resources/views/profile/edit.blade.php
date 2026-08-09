@@ -59,9 +59,6 @@
             <a href="{{ route('profile.manage-messages') }}" class="btn-secondary text-sm inline-flex items-center gap-2">
                 <span>📬</span> مدیریت پیام‌ها
             </a>
-            <a href="{{ route('profile.chart', ['username' => $user->name]) }}" target="_blank" class="btn-secondary text-sm inline-flex items-center gap-2">
-                <span>🔗</span> لینک عمومی چارت
-            </a>
             <button onclick="document.getElementById('delete-form').submit()" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 px-4 py-2 rounded-lg text-sm transition-colors inline-flex items-center gap-2">
                 <span>🗑️</span> حذف حساب
             </button>
@@ -93,9 +90,6 @@
         <!-- دکمه‌های اکشن -->
         <div class="flex gap-3 mt-4">
             <button onclick="downloadStoryChart()" class="btn-primary text-xs flex-1 py-3">📸 دانلود تصویر استوری (9:16)</button>
-            <a href="{{ route('profile.chart', ['username' => $user->name]) }}" target="_blank" class="btn-secondary text-xs py-3 text-center">
-                🔗 لینک عمومی
-            </a>
         </div>
     </div>
 

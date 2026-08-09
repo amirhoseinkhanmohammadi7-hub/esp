@@ -250,8 +250,31 @@ class ChatController extends Controller
      */
     public function typingStatus(int $userId, Request $request): JsonResponse
     {
-        // In a production environment, this would broadcast via WebSocket/Pusher
+        $user = Auth::user();
+        $isTyping = $request->input('is_typing', false);
+        
+        // ذخیره وضعیت تایپ در کش برای ۳ ثانیه
+        if ($isTyping) {
+            cache()->set("typing_{$userId}_{$user->id}", true, 3);
+        } else {
+            cache()->forget("typing_{$userId}_{$user->id}");
+        }
+        
         return response()->json(['success' => true]);
+    }
+    
+    /**
+     * API endpoint to get typing status.
+     */
+    public function getTypingStatus(int $userId): JsonResponse
+    {
+        $user = Auth::user();
+        $isTyping = cache()->get("typing_{$userId}_{$user->id}", false);
+        
+        return response()->json([
+            'success' => true,
+            'is_typing' => $isTyping
+        ]);
     }
 
     /**
