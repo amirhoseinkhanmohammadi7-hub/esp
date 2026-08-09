@@ -22,9 +22,7 @@
             
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-heading shadow-lg">
-                        {{ mb_substr($habit->user->name, 0, 1) }}
-                    </div>
+                    <img src="{{ $habit->user->profile_picture_url }}" alt="عکس پروفایل {{ $habit->user->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-purple-500/30 shadow-lg">
                     <div>
                         <div class="font-heading text-sm">{{ $habit->user->name }}</div>
                         <div class="text-[10px] text-white/50">در مسیر پیشرفت</div>
@@ -110,9 +108,9 @@
                     <div class="space-y-2 max-h-48 overflow-y-auto">
                         @foreach($habit->signatures as $sig)
                             <div class="glass-card p-3 text-xs">
-                                <div class="font-heading text-cyan-300">{{ $sig->name }}</div>
+                                <div class="font-heading text-cyan-300">{{ e($sig->name) }}</div>
                                 @if($sig->message)
-                                    <div class="text-white/60 mt-1 font-quote">"{{ $sig->message }}"</div>
+                                    <div class="text-white/60 mt-1 font-quote">"{{ e($sig->message) }}"</div>
                                 @endif
                             </div>
                         @endforeach

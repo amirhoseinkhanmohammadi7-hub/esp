@@ -5,8 +5,19 @@
     <!-- فرم پروفایل -->
     <div class="glass-card p-6">
         <h1 class="text-lg font-heading mb-4">پروفایل</h1>
-        <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
+        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-4">
             @csrf @method('PATCH')
+            
+            <!-- عکس پروفایل -->
+            <div class="flex items-center gap-4">
+                <img src="{{ $user->profile_picture_url }}" alt="عکس پروفایل" class="w-20 h-20 rounded-full object-cover border-2 border-purple-500/30">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium mb-1.5 text-white/70">عکس پروفایل</label>
+                    <input type="file" name="profile_picture" class="text-xs text-white/70 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-purple-500/20 file:text-purple-300 hover:file:bg-purple-500/30 cursor-pointer" accept="image/*">
+                    <p class="text-[10px] text-white/40 mt-1">فرمت‌های مجاز: jpeg, png, jpg, gif, webp - حداکثر 2MB</p>
+                </div>
+            </div>
+            
             <div>
                 <label class="block text-xs font-medium mb-1.5 text-white/70">نام</label>
                 <input type="text" name="name" class="glass-input" value="{{ old('name', $user->name) }}" required>
@@ -16,6 +27,23 @@
                 <input type="email" name="email" class="glass-input" value="{{ old('email', $user->email) }}" required>
             </div>
             <button type="submit" class="btn-primary text-xs">ذخیره تغییرات</button>
+        </form>
+    </div>
+    
+    <!-- حذف حساب کاربری -->
+    <div class="glass-card p-6 border-red-500/20">
+        <h2 class="text-lg font-heading mb-2 text-red-300">⚠️ حذف حساب کاربری</h2>
+        <p class="text-xs text-white/60 mb-4">با حذف حساب کاربری، تمام اطلاعات شما شامل عادت‌ها، دستاوردها و پیام‌ها برای همیشه پاک خواهد شد.</p>
+        
+        <form method="POST" action="{{ route('profile.destroy') }}" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیرقابل بازگشت است.');">
+            @csrf @method('DELETE')
+            <div>
+                <label class="block text-xs font-medium mb-1.5 text-white/70">برای تایید، رمز عبور خود را وارد کنید:</label>
+                <input type="password" name="password" class="glass-input" placeholder="رمز عبور" required>
+            </div>
+            <button type="submit" class="mt-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 px-4 py-2 rounded-lg text-xs transition-colors">
+                حذف دائمی حساب کاربری
+            </button>
         </form>
     </div>
 

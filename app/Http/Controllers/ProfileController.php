@@ -16,7 +16,21 @@ class ProfileController extends Controller {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
         ]);
+        
+        // Handle profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            // Delete old profile picture if exists
+            if ($user->profile_picture) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_picture);
+            }
+            
+            // Store new profile picture
+            $path = $request->file('profile_picture')->store('profile-pictures', 'public');
+            $validated['profile_picture'] = $path;
+        }
+        
         $user->fill($validated);
         if ($user->isDirty('email')) $user->email_verified_at = null;
         $user->save();
@@ -25,6 +39,12 @@ class ProfileController extends Controller {
     public function destroy(Request $request) {
         $request->validateWithBag('userDeletion', ['password' => ['required', 'current_password']]);
         $user = $request->user();
+        
+        // Delete profile picture if exists
+        if ($user->profile_picture) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_picture);
+        }
+        
         Auth::logout();
         $user->delete();
         $request->session()->invalidate();
