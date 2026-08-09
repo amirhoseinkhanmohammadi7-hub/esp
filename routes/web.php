@@ -85,7 +85,7 @@ Route::get('/{username}', function ($username) {
         ->pluck('count', 'reaction_type');
 
     return view('profile.user-page', compact('user', 'reactions', 'reactionsByType'));
-})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout)[a-zA-Z0-9_]+');
+})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|chart|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
 
 // نمودار عمومی بر اساس نام کاربر
 Route::get('/chart/{username}', function ($username) {
@@ -97,7 +97,7 @@ Route::get('/chart/{username}', function ($username) {
         ->pluck('count', 'reaction_type');
 
     return view('profile.public-chart', compact('user', 'reactions', 'reactionsByType'));
-})->name('profile.chart')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout)[a-zA-Z0-9_]+');
+})->name('profile.chart')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
 
 // ثبت ری‌اکشن روی نمودار عمومی
 Route::post('/chart/{username}/react', function (\Illuminate\Http\Request $request, $username) {

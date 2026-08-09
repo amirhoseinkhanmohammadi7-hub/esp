@@ -1,6 +1,6 @@
 ```
 # Dependencies
-node_modules/
+vendor/
 
 # Environment
 .env
@@ -10,47 +10,61 @@ node_modules/
 # Logs
 *.log
 
-# Editor
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# IDE
 .vscode/
 .idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Build artifacts
+dist/
+build/
+target/
+*.o
+*.obj
+*.out
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-venv/
-.venv/
-env/
-ENV/
-
-# Build outputs
-build/
-dist/
 *.egg-info/
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Coverage reports
-coverage/
-htmlcov/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
 .coverage
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-
-# MyPy cache
+.nox/
+.pytest_cache/
 .mypy_cache/
 
-# PyTest cache
-.pytest_cache/
+# PHP
+*.php~
+*.php.bak
+*.php.swp
+*.php.swo
+composer.lock
+vendor/composer/installed.json
+vendor/composer/installed.php
+vendor/composer/autoload_*.php
+vendor/composer/ClassLoader.php
+vendor/autoload.php
+vendor/bin/*
 
-# Compressed files
+# Compressed archives
 *.zip
 *.gz
 *.tar
@@ -73,4 +87,5 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
 ```
