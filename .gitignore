@@ -1,43 +1,48 @@
-```php
-# Environment specific
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Dependencies
+node_modules/
+venv/
+.venv/
 .env
 .env.local
 .env.*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Cache and temporary files
-.cache/
-tmp/
-temp/
-
-# Composer dependencies (if PHP project uses Composer)
-vendor/
-
-# Build artifacts
-dist/
-build/
-target/
-
-# IDE files
-.vscode/
-.idea/
+*.tmp
 *.swp
 *.swo
 
-# OS files
-.DS_Store
-Thumbs.db
+# Editors
+.vscode/
+.idea/
 
-# Coverage reports
+# Build directories
+dist/
+build/
+target/
+.gradle/
+
+# Coverage
 coverage/
 htmlcov/
 .coverage
 
-# Python cache (if mixed environment)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-```
+# Python specific
+.mypy_cache/
+.pytest_cache/
+
+# System files
+.DS_Store
+Thumbs.db
