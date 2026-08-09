@@ -12,7 +12,9 @@
 
     @if($habits->isEmpty())
         <div class="glass-card p-10 text-center">
-            <div class="text-5xl mb-3">🌱</div>
+            <div class="flex justify-center mb-4">
+                <img src="{{ auth()->user()->profile_picture_url }}" alt="عکس پروفایل" class="w-24 h-24 rounded-full object-cover border-4 border-purple-500/30">
+            </div>
             <h2 class="text-lg font-heading mb-2">هنوز عادتی نساختی!</h2>
             <p class="text-white/50 text-sm mb-5">اولین قدم همیشه سخت‌ترین قدمه.</p>
             <a href="{{ route('habits.create') }}" class="btn-primary">ساختن اولین عادت</a>

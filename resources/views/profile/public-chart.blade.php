@@ -19,8 +19,13 @@
     <div class="min-h-screen py-8 px-4 max-w-4xl mx-auto">
         <!-- هدر -->
         <div class="glass-card p-6 mb-6 text-center">
-            <div class="font-logo text-3xl mb-2">espira</div>
-            <h1 class="text-xl font-heading mb-1">نمودار رشد {{ $user->name }}</h1>
+            <div class="flex items-center justify-center gap-4 mb-3">
+                <img src="{{ $user->profile_picture_url }}" alt="عکس پروفایل {{ $user->name }}" class="w-20 h-20 rounded-full object-cover border-4 border-purple-500/30">
+                <div class="text-right">
+                    <div class="font-logo text-3xl mb-1">espira</div>
+                    <h1 class="text-xl font-heading">نمودار رشد {{ $user->name }}</h1>
+                </div>
+            </div>
             <p class="text-white/50 text-sm">پیشرفت واقعی، قدم به قدم</p>
         </div>
 
@@ -84,7 +89,7 @@
                 @foreach($reactions as $reaction)
                     <div class="glass-card px-3 py-1.5 flex items-center gap-2 text-sm">
                         <span class="text-lg">{{ $reaction->reaction_type }}</span>
-                        <span class="text-xs text-white/60">{{ $reaction->user_name }}</span>
+                        <span class="text-xs text-white/60">{{ e($reaction->user_name) }}</span>
                     </div>
                 @endforeach
             </div>

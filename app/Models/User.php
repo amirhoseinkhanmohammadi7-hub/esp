@@ -6,7 +6,7 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable {
     use HasFactory, Notifiable;
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password', 'profile_picture'];
     protected $hidden = ['password', 'remember_token'];
     protected function casts(): array {
         return ['email_verified_at' => 'datetime', 'password' => 'hashed'];
@@ -14,4 +14,18 @@ class User extends Authenticatable {
     public function habits() { return $this->hasMany(Habit::class); }
     public function signatures() { return $this->hasMany(Signature::class); }
     public function achievements() { return $this->hasMany(Achievement::class); }
+    
+    /**
+     * Get the profile picture URL or a default avatar.
+     */
+    public function getProfilePictureUrlAttribute(): string
+    {
+        if ($this->profile_picture) {
+            return asset('storage/' . $this->profile_picture);
+        }
+        
+        // Generate a default avatar using UI Avatars API with user's name
+        $name = urlencode($this->name ?? 'User');
+        return "https://ui-avatars.com/api/?name={$name}&background=a855f7&color=fff&size=256";
+    }
 }
