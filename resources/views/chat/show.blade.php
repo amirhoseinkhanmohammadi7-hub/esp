@@ -220,6 +220,7 @@ function chatManager(partnerId, currentUserId) {
         
         handleTyping() {
             // ارسال وضعیت تایپ به سرور فقط وقتی کاربر واقعاً در حال تایپ است
+            // و فقط برای طرف مقابل، نه برای خود کاربر
             if (!this.typingTimeout) {
                 this.sendTypingStatus(true);
             }
@@ -232,6 +233,9 @@ function chatManager(partnerId, currentUserId) {
         },
         
         async sendTypingStatus(isTyping) {
+            // فقط برای طرف مقابل ارسال شود، نه برای خود کاربر
+            if (!isTyping && !this.typingTimeout) return;
+            
             try {
                 await fetch(`/api/chat/${this.partnerId}/typing`, {
                     method: 'POST',
@@ -343,13 +347,14 @@ function chatManager(partnerId, currentUserId) {
         },
         
         renderVoiceMessage(fileUrl, timeStr) {
-            const waveformBars = Array(30).fill(0).map(() => 
-                `<div style="height:${Math.floor(Math.random() * 80 + 20)}%"></div>`
+            const uniqueId = 'voice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const waveformBars = Array(30).fill(0).map((_, i) => 
+                `<div class="waveform-bar" style="height:${Math.floor(Math.random() * 80 + 20)}%; transition: height 0.1s;"></div>`
             ).join('');
             
             return `
-                <div class="voice-message">
-                    <button onclick="toggleVoicePlayback(this)" class="play-btn" type="button">
+                <div class="voice-message" id="${uniqueId}">
+                    <button onclick="toggleVoicePlayback('${uniqueId}')" class="play-btn" type="button">
                         <svg class="w-5 h-5 text-white play-icon" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z"/>
                         </svg>
@@ -358,10 +363,10 @@ function chatManager(partnerId, currentUserId) {
                         </svg>
                     </button>
                     <div class="flex-1 min-w-0 mx-3">
-                        <div class="voice-waveform">${waveformBars}</div>
+                        <div class="voice-waveform flex items-center gap-0.5 h-8">${waveformBars}</div>
                     </div>
                     <span class="text-xs text-white/60 font-medium ml-3 bg-black/20 px-2 py-1 rounded">${timeStr}</span>
-                    <audio class="hidden" src="${fileUrl}"></audio>
+                    <audio class="hidden" src="${fileUrl}" data-voice-id="${uniqueId}"></audio>
                 </div>
             `;
         },
@@ -425,13 +430,27 @@ function chatManager(partnerId, currentUserId) {
         
         async startRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 44100
+                    } 
+                });
                 
-                this.mediaRecorder = new MediaRecorder(stream);
+                // Use better audio format for webm
+                const options = { mimeType: 'audio/webm;codecs=opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = 'audio/webm';
+                }
+                
+                this.mediaRecorder = new MediaRecorder(stream, options);
                 this.audioChunks = [];
                 
                 this.mediaRecorder.ondataavailable = (event) => {
-                    this.audioChunks.push(event.data);
+                    if (event.data.size > 0) {
+                        this.audioChunks.push(event.data);
+                    }
                 };
                 
                 this.mediaRecorder.onstop = () => {
@@ -447,11 +466,21 @@ function chatManager(partnerId, currentUserId) {
                         previewAudio.src = audioUrl;
                     }
                     
+                    // Stop all tracks to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+                    
                     this.isRecording = false;
                     this.clearRecordingTimer();
                 };
                 
-                this.mediaRecorder.start();
+                this.mediaRecorder.onerror = (event) => {
+                    console.error('MediaRecorder error:', event.error);
+                    this.showAlert('خطا در ضبط صدا: ' + event.error.name);
+                    this.isRecording = false;
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                this.mediaRecorder.start(100); // Collect data every 100ms
                 this.isRecording = true;
                 this.recordingStartTime = Date.now();
                 this.startRecordingTimer();
@@ -461,7 +490,15 @@ function chatManager(partnerId, currentUserId) {
                 
             } catch (error) {
                 console.error('Error accessing microphone:', error);
-                this.showAlert('{{ __('دسترسی به میکروفون نیاز است') }}');
+                let errorMsg = 'دسترسی به میکروفون نیاز است';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'اجازه دسترسی به میکروفون داده نشده است';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'میکروفونی یافت نشد';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = 'میکروفون در حال استفاده توسط برنامه دیگری است';
+                }
+                this.showAlert(errorMsg);
             }
         },
         
@@ -612,37 +649,64 @@ function chatManager(partnerId, currentUserId) {
 /**
  * Global voice playback toggle function for dynamically added voice messages
  */
-function toggleVoicePlayback(btn) {
-    const audio = btn.parentElement.querySelector('audio');
-    const playIcon = btn.querySelector('.play-icon');
-    const pauseIcon = btn.querySelector('.pause-icon');
+function toggleVoicePlayback(voiceId) {
+    const voiceElement = document.getElementById(voiceId);
+    if (!voiceElement) return;
     
-    if (!audio) return;
+    const audio = voiceElement.querySelector('audio');
+    const btn = voiceElement.querySelector('.play-btn');
+    const playIcon = btn?.querySelector('.play-icon');
+    const pauseIcon = btn?.querySelector('.pause-icon');
+    const waveformBars = voiceElement.querySelectorAll('.waveform-bar');
     
+    if (!audio || !btn) return;
+    
+    // Stop all other playing audios
     document.querySelectorAll('audio').forEach(a => {
         if (a !== audio && !a.paused) {
             a.pause();
-            const otherBtn = a.parentElement.querySelector('.play-btn');
+            const otherVoiceEl = a.closest('.voice-message');
+            const otherBtn = otherVoiceEl?.querySelector('.play-btn');
             if (otherBtn) {
                 otherBtn.querySelector('.play-icon')?.classList.remove('hidden');
                 otherBtn.querySelector('.pause-icon')?.classList.add('hidden');
             }
+            // Reset other waveform animation
+            const otherWaveform = otherVoiceEl?.querySelectorAll('.waveform-bar');
+            otherWaveform?.forEach(bar => bar.style.height = Math.floor(Math.random() * 80 + 20) + '%');
         }
     });
     
     if (audio.paused) {
         audio.play();
-        playIcon.classList.add('hidden');
-        pauseIcon.classList.remove('hidden');
+        playIcon?.classList.add('hidden');
+        pauseIcon?.classList.remove('hidden');
+        
+        // Animate waveform while playing
+        audio.waveformInterval = setInterval(() => {
+            waveformBars.forEach((bar, i) => {
+                bar.style.height = Math.floor(Math.random() * 80 + 20) + '%';
+            });
+        }, 100);
     } else {
         audio.pause();
-        playIcon.classList.remove('hidden');
-        pauseIcon.classList.add('hidden');
+        playIcon?.classList.remove('hidden');
+        pauseIcon?.classList.add('hidden');
+        
+        // Stop waveform animation
+        if (audio.waveformInterval) {
+            clearInterval(audio.waveformInterval);
+        }
+        waveformBars.forEach(bar => bar.style.height = Math.floor(Math.random() * 80 + 20) + '%');
     }
     
     audio.onended = () => {
-        playIcon.classList.remove('hidden');
-        pauseIcon.classList.add('hidden');
+        playIcon?.classList.remove('hidden');
+        pauseIcon?.classList.add('hidden');
+        if (audio.waveformInterval) {
+            clearInterval(audio.waveformInterval);
+        }
+        waveformBars.forEach(bar => bar.style.height = Math.floor(Math.random() * 80 + 20) + '%');
     };
 }
 </script>
