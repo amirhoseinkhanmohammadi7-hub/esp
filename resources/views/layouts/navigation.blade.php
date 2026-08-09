@@ -12,6 +12,12 @@
                     <a href="{{ route('profile.edit') }}" class="text-sm text-white/70 hover:text-white transition {{ request()->routeIs('profile.edit') ? 'text-white font-semibold' : '' }}">
                         پروفایل
                     </a>
+                    @auth
+                    <a href="{{ route('chat.index') }}" class="text-sm text-white/70 hover:text-white transition {{ request()->routeIs('chat.*') ? 'text-white font-semibold' : '' }} relative">
+                        💬 چت
+                        <span id="chatRequestBadge" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">!</span>
+                    </a>
+                    @endauth
                 </div>
             </div>
 
@@ -19,6 +25,7 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-lg text-white/80 bg-white/5 hover:bg-white/10 focus:outline-none transition">
+                            <img src="{{ Auth::user()->profile_picture_url }}" alt="{{ Auth::user()->name }}" class="w-6 h-6 rounded-full ml-2 object-cover">
                             <div>{{ Auth::user()->name }}</div>
                             <div class="ms-1">
                                 <svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -57,11 +64,17 @@
         <div class="pt-2 pb-3 space-y-1">
             <a href="{{ route('habits.index') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg">عادت‌های من</a>
             <a href="{{ route('profile.edit') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg">پروفایل</a>
+            @auth
+            <a href="{{ route('chat.index') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg">💬 چت</a>
+            @endauth
         </div>
         <div class="pt-4 pb-1 border-t border-white/10">
-            <div class="px-4">
-                <div class="font-medium text-sm text-white">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-xs text-white/60">{{ Auth::user()->email }}</div>
+            <div class="px-4 flex items-center gap-3">
+                <img src="{{ Auth::user()->profile_picture_url }}" alt="{{ Auth::user()->name }}" class="w-8 h-8 rounded-full object-cover">
+                <div>
+                    <div class="font-medium text-sm text-white">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-xs text-white/60">{{ Auth::user()->email }}</div>
+                </div>
             </div>
             <div class="mt-3 space-y-1">
                 <form method="POST" action="{{ route('logout') }}">
@@ -72,3 +85,27 @@
         </div>
     </div>
 </nav>
+
+@auth
+<script>
+// Check for pending chat requests
+async function checkChatRequests() {
+    try {
+        const response = await fetch('{{ route('chat.requests') }}', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        const result = await response.json();
+        const badge = document.getElementById('chatRequestBadge');
+        if (result.requests && result.requests.length > 0) {
+            badge.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error checking chat requests:', error);
+    }
+}
+document.addEventListener('DOMContentLoaded', checkChatRequests);
+</script>
+@endauth
