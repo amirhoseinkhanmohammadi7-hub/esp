@@ -219,19 +219,15 @@ function chatManager(partnerId, currentUserId) {
         },
         
         handleTyping() {
-            this.isTyping = true;
-            document.getElementById('typingIndicator')?.classList.remove('hidden');
+            // ارسال وضعیت تایپ به سرور فقط وقتی کاربر واقعاً در حال تایپ است
+            if (!this.typingTimeout) {
+                this.sendTypingStatus(true);
+            }
             
             clearTimeout(this.typingTimeout);
             this.typingTimeout = setTimeout(() => {
-                this.isTyping = false;
-                document.getElementById('typingIndicator')?.classList.add('hidden');
-                this.sendTypingStatus(true);
-            }, 500);
-            
-            setTimeout(() => {
-                this.isTyping = false;
-                document.getElementById('typingIndicator')?.classList.add('hidden');
+                this.sendTypingStatus(false);
+                this.typingTimeout = null;
             }, 2000);
         },
         
@@ -253,6 +249,7 @@ function chatManager(partnerId, currentUserId) {
         startMessagesPolling() {
             this.messagesPollingInterval = setInterval(async () => {
                 try {
+                    // دریافت پیام‌های جدید
                     const response = await fetch(`/api/chat/${this.partnerId}/messages?last_id=${this.lastMessageId}`);
                     const result = await response.json();
                     
@@ -263,10 +260,32 @@ function chatManager(partnerId, currentUserId) {
                         });
                         this.scrollToBottom();
                     }
+                    
+                    // بررسی وضعیت تایپ طرف مقابل
+                    this.checkTypingStatus();
+                    
                 } catch (error) {
                     console.error('Error fetching new messages:', error);
                 }
             }, 2000);
+        },
+        
+        async checkTypingStatus() {
+            try {
+                const response = await fetch(`/api/chat/${this.partnerId}/typing-status`);
+                const result = await response.json();
+                
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    if (result.is_typing) {
+                        typingIndicator.classList.remove('hidden');
+                    } else {
+                        typingIndicator.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking typing status:', error);
+            }
         },
         
         appendMessage(message) {
@@ -352,6 +371,11 @@ function chatManager(partnerId, currentUserId) {
             if (!form) return;
             
             const formData = new FormData(form);
+            const messageText = this.messageText.trim();
+            const hasFile = form.querySelector('#fileInput').files.length > 0;
+            
+            // اگر نه پیامی هست نه فایلی، خارج شو
+            if (!messageText && !hasFile) return;
             
             try {
                 const response = await fetch(`/chat/${this.partnerId}/send`, {
@@ -370,6 +394,11 @@ function chatManager(partnerId, currentUserId) {
                     this.messageText = '';
                     form.querySelector('#fileInput').value = '';
                     this.lastMessageId = result.message.id;
+                    
+                    // ارسال وضعیت توقف تایپ بعد از ارسال پیام
+                    this.sendTypingStatus(false);
+                    clearTimeout(this.typingTimeout);
+                    this.typingTimeout = null;
                 } else {
                     this.showAlert('❌ ' + result.message);
                 }

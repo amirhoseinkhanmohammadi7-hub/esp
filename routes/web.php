@@ -85,19 +85,7 @@ Route::get('/{username}', function ($username) {
         ->pluck('count', 'reaction_type');
 
     return view('profile.user-page', compact('user', 'reactions', 'reactionsByType'));
-})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|chart|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
-
-// نمودار عمومی بر اساس نام کاربر
-Route::get('/chart/{username}', function ($username) {
-    $user = \App\Models\User::where('name', $username)->firstOrFail();
-
-    $reactions = \App\Models\Reaction::orderBy('created_at', 'desc')->get();
-    $reactionsByType = \App\Models\Reaction::selectRaw('reaction_type, COUNT(*) as count')
-        ->groupBy('reaction_type')
-        ->pluck('count', 'reaction_type');
-
-    return view('profile.public-chart', compact('user', 'reactions', 'reactionsByType'));
-})->name('profile.chart')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
+})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
 
 // ثبت ری‌اکشن روی نمودار عمومی
 Route::post('/chart/{username}/react', function (\Illuminate\Http\Request $request, $username) {
@@ -136,19 +124,6 @@ Route::post('/chart/{username}/react', function (\Illuminate\Http\Request $reque
         'message' => 'ری‌اکشن شما ثبت شد!'
     ]);
 })->name('profile.react');
-
-// دریافت ری‌اکشن‌ها (برای بروزرسانی زنده)
-Route::get('/chart/{username}/reactions', function ($username) {
-    $reactions = \App\Models\Reaction::orderBy('created_at', 'desc')->take(50)->get();
-    $reactionsByType = \App\Models\Reaction::selectRaw('reaction_type, COUNT(*) as count')
-        ->groupBy('reaction_type')
-        ->pluck('count', 'reaction_type');
-
-    return response()->json([
-        'reactions' => $reactions,
-        'counts' => $reactionsByType,
-    ]);
-})->name('profile.reactions');
 
 /*
 |--------------------------------------------------------------------------
@@ -260,16 +235,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/chat-request/{requestId}/respond', [ChatController::class, 'respondToRequest'])->name('chat.respond');
     Route::get('/api/chat/{userId}/messages', [ChatController::class, 'getNewMessages'])->name('chat.api.messages');
     Route::post('/api/chat/{userId}/typing', [ChatController::class, 'typingStatus'])->name('chat.api.typing');
+    Route::get('/api/chat/{userId}/typing-status', [ChatController::class, 'getTypingStatus'])->name('chat.api.typing-status');
 });
 
 /*
 |--------------------------------------------------------------------------
 | مسیرهای احراز هویت (لاگین، ثبت‌نام، خروج)
-|--------------------------------------------------------------------------
-*/
+|--------------------------------------------------------------------------\n*/
 
 // ارسال پیام به صاحب چارت
-Route::post('/chart/{username}/message', function (\Illuminate\Http\Request $request, $username) {
+Route::post('/profile/{username}/message', function (\Illuminate\Http\Request $request, $username) {
     $validated = $request->validate([
         'message' => 'required|string|max:500',
         'sender_name' => 'nullable|string|max:100',
