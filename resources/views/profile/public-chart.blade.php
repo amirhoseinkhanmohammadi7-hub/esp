@@ -270,8 +270,11 @@
 
                 const result = await response.json();
                 if (result.success) {
+                    // Hide the reaction interface after successful submission
+                    document.getElementById('reactForm').style.display = 'none';
+                    document.querySelectorAll('.reaction-btn').forEach(btn => btn.style.display = 'none');
+                    // Show success message without reload
                     alert('✅ ری‌اکشن شما ثبت شد!');
-                    location.reload();
                 } else {
                     alert('❌ ' + result.message);
                 }

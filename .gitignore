@@ -1,45 +1,44 @@
-# Laravel/Lumen specific
+```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Dependencies
 vendor/
-composer.lock
+node_modules/
 .env
+.env.local
 .env.*
-!.env.example
 
-# Build and cache directories
-bootstrap/cache/
-storage/logs/
-storage/framework/cache/
-storage/framework/sessions/
-storage/framework/views/
-
-# PHP related
-*.php~
+# Logs and temp files
+*.log
+*.tmp
 *.swp
 *.swo
 
-# IDE
+# Editors
 .vscode/
 .idea/
-*.tmp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
 
 # Coverage
 coverage/
-*.gcov
-*.lcov
+htmlcov/
+.coverage
 
-# Distribution / packaging
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build directories
 dist/
 build/
-*.tar.gz
-*.zip
-
-# Environment specific
-.env.local
-.env.*.local
+target/
+```
