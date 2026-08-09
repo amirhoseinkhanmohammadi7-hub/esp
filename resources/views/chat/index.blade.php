@@ -8,7 +8,9 @@
         <h1 class="text-xl font-heading mb-6">💬 {{ __('چت‌های من') }}</h1>
 
         @if(session('error'))
-            <x-alert type="error" :message="session('error')" />
+            <x-alert type="error">
+                {{ session('error') }}
+            </x-alert>
         @endif
 
         {{-- Pending Requests Section --}}
@@ -25,8 +27,8 @@
             
             @if(count($chatPartners) === 0)
                 <x-empty-state 
-                    icon="💬" 
-                    message="{{ __('هنوز گفتگویی ندارید') }}" 
+                    icon="chat" 
+                    :title="__('هنوز گفتگویی ندارید')"
                 />
             @else
                 <div class="space-y-2">
