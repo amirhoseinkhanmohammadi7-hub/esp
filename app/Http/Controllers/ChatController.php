@@ -5,132 +5,119 @@ namespace App\Http\Controllers;
 use App\Models\ChatRequest;
 use App\Models\Chat;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 class ChatController extends Controller
 {
-    public function index()
+    /**
+     * Display the chat index page with all chat partners and pending requests.
+     */
+    public function index(): View
     {
         $user = Auth::user();
-        
-        // Get all chat partners (users who have accepted chat requests)
-        $acceptedRequests = ChatRequest::where('status', 'accepted')
-            ->where(function($q) use ($user) {
-                $q->where('sender_id', $user->id)
-                  ->orWhere('receiver_id', $user->id);
-            })
+
+        // Get all accepted chat requests
+        $acceptedRequests = ChatRequest::accepted()
+            ->forUser($user->id)
             ->with(['sender', 'receiver'])
             ->get();
-        
-        $chatPartners = [];
-        foreach ($acceptedRequests as $request) {
+
+        $chatPartners = $acceptedRequests->map(function ($request) use ($user) {
             $partner = $request->sender_id === $user->id ? $request->receiver : $request->sender;
-            $lastMessage = Chat::where(function($q) use ($user, $partner) {
-                $q->where(function($q2) use ($user, $partner) {
-                    $q2->where('user_id', $user->id)->where('receiver_id', $partner->id);
-                })->orWhere(function($q2) use ($user, $partner) {
-                    $q2->where('user_id', $partner->id)->where('receiver_id', $user->id);
-                });
-            })->latest()->first();
-            
-            $chatPartners[] = [
+
+            $lastMessage = Chat::betweenUsers($user->id, $partner->id)
+                ->latest()
+                ->first();
+
+            return [
                 'user' => $partner,
                 'last_message' => $lastMessage,
-                'request' => $request
+                'request' => $request,
             ];
-        }
-        
+        })->sortByDesc(fn ($partner) => $partner['last_message']?->created_at ?? now())
+         ->values()
+         ->all();
+
         return view('chat.index', compact('chatPartners'));
     }
-    
-    public function show($userId)
+
+    /**
+     * Display a chat with a specific user.
+     */
+    public function show(int $userId): View|RedirectResponse
     {
         $user = Auth::user();
         $partner = User::findOrFail($userId);
-        
-        // Check if chat request is accepted
-        $chatRequest = ChatRequest::where(function($q) use ($user, $partner) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $partner->id);
-        })->orWhere(function($q) use ($user, $partner) {
-            $q->where('sender_id', $partner->id)->where('receiver_id', $user->id);
-        })->where('status', 'accepted')->first();
-        
-        if (!$chatRequest) {
-            return redirect()->route('chat.index')->with('error', 'شما اجازه چت با این کاربر را ندارید');
+
+        if (!$this->hasActiveChatRequest($user->id, $partner->id)) {
+            return redirect()
+                ->route('chat.index')
+                ->with('error', 'شما اجازه چت با این کاربر را ندارید');
         }
-        
-        $messages = Chat::where(function($q) use ($user, $partner) {
-            $q->where(function($q2) use ($user, $partner) {
-                $q2->where('user_id', $user->id)->where('receiver_id', $partner->id);
-            })->orWhere(function($q2) use ($user, $partner) {
-                $q2->where('user_id', $partner->id)->where('receiver_id', $user->id);
-            });
-        })->orderBy('created_at', 'asc')->get();
-        
+
+        $messages = Chat::betweenUsers($user->id, $partner->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Mark messages as read
+        Chat::betweenUsers($user->id, $partner->id)
+            ->unreadFor($user->id)
+            ->each(fn ($message) => $message->markAsRead());
+
         return view('chat.show', compact('partner', 'messages'));
     }
-    
-    public function sendMessage(Request $request, $userId)
+
+    /**
+     * Send a message to a user.
+     */
+    public function sendMessage(Request $request, int $userId): JsonResponse
     {
         $user = Auth::user();
         $partner = User::findOrFail($userId);
-        
-        // Validate chat request
-        $chatRequest = ChatRequest::where(function($q) use ($user, $partner) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $partner->id);
-        })->orWhere(function($q) use ($user, $partner) {
-            $q->where('sender_id', $partner->id)->where('receiver_id', $user->id);
-        })->where('status', 'accepted')->first();
-        
-        if (!$chatRequest) {
-            return response()->json(['success' => false, 'message' => 'شما اجازه چت با این کاربر را ندارید'], 403);
+
+        if (!$this->hasActiveChatRequest($user->id, $partner->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'شما اجازه چت با این کاربر را ندارید',
+            ], 403);
         }
-        
+
         $validated = $request->validate([
             'message' => 'nullable|string|max:1000',
             'file' => 'nullable|file|max:10240', // 10MB max
         ]);
-        
+
         $filePath = null;
         $fileType = null;
-        
+
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            
-            // Security: Validate file type
-            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'application/pdf'];
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'wav', 'webm', 'ogg', 'pdf'];
-            
-            if (!in_array($file->getClientOriginalExtension(), $allowedExtensions)) {
-                return response()->json(['success' => false, 'message' => 'نوع فایل مجاز نیست'], 400);
+            $validationResult = $this->validateFile($file);
+
+            if ($validationResult['error']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validationResult['error'],
+                ], 400);
             }
-            
-            if (!in_array($file->getMimeType(), $allowedMimes)) {
-                return response()->json(['success' => false, 'message' => 'نوع فایل مجاز نیست'], 400);
-            }
-            
-            // Determine file type
-            if (str_starts_with($file->getMimeType(), 'image/')) {
-                $fileType = 'image';
-            } elseif (str_starts_with($file->getMimeType(), 'video/')) {
-                $fileType = 'video';
-            } elseif (str_starts_with($file->getMimeType(), 'audio/')) {
-                $fileType = 'audio';
-            } else {
-                $fileType = 'file';
-            }
-            
-            // Store file with sanitized name
+
+            $fileType = $validationResult['type'];
             $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $filePath = $file->storeAs('chats/' . date('Y/m'), $fileName, 'public');
         }
-        
+
         if (empty($validated['message']) && !$filePath) {
-            return response()->json(['success' => false, 'message' => 'پیام یا فایل الزامی است'], 400);
+            return response()->json([
+                'success' => false,
+                'message' => 'پیام یا فایل الزامی است',
+            ], 400);
         }
-        
+
         $chat = Chat::create([
             'user_id' => $user->id,
             'receiver_id' => $partner->id,
@@ -139,101 +126,112 @@ class ChatController extends Controller
             'file_type' => $fileType,
             'is_read' => false,
         ]);
-        
+
         return response()->json([
             'success' => true,
-            'message' => $chat,
+            'message' => $chat->load(['sender', 'receiver']),
         ]);
     }
-    
-    public function sendRequest(Request $request, $userId)
+
+    /**
+     * Send a chat request to a user.
+     */
+    public function sendRequest(Request $request, int $userId): JsonResponse
     {
         $user = Auth::user();
-        
-        if ($user->id == $userId) {
-            return response()->json(['success' => false, 'message' => 'نمیتوانید به خودتان درخواست دهید'], 400);
+
+        if ($user->id === $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'نمیتوانید به خودتان درخواست دهید',
+            ], 400);
         }
-        
-        // Check if request already exists
-        $existingRequest = ChatRequest::where(function($q) use ($user, $userId) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $userId);
-        })->orWhere(function($q) use ($user, $userId) {
-            $q->where('sender_id', $userId)->where('receiver_id', $user->id);
-        })->first();
-        
+
+        $existingRequest = ChatRequest::betweenUsers($user->id, $userId)->first();
+
         if ($existingRequest) {
-            if ($existingRequest->status === 'accepted') {
-                return response()->json(['success' => false, 'message' => 'شما قبلاً با این کاربر چت دارید'], 400);
-            } elseif ($existingRequest->status === 'pending') {
-                return response()->json(['success' => false, 'message' => 'درخواست شما در انتظار بررسی است'], 400);
-            }
+            return match ($existingRequest->status) {
+                ChatRequest::STATUS_ACCEPTED => response()->json([
+                    'success' => false,
+                    'message' => 'شما قبلاً با این کاربر چت دارید',
+                ], 400),
+                ChatRequest::STATUS_PENDING => response()->json([
+                    'success' => false,
+                    'message' => 'درخواست شما در انتظار بررسی است',
+                ], 400),
+                default => null,
+            };
         }
-        
+
         ChatRequest::create([
             'sender_id' => $user->id,
             'receiver_id' => $userId,
-            'status' => 'pending',
+            'status' => ChatRequest::STATUS_PENDING,
         ]);
-        
-        return response()->json(['success' => true, 'message' => 'درخواست چت ارسال شد']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'درخواست چت ارسال شد',
+        ]);
     }
-    
-    public function getRequests()
+
+    /**
+     * Get pending chat requests for the authenticated user.
+     */
+    public function getRequests(): JsonResponse
     {
         $user = Auth::user();
-        $requests = ChatRequest::where('receiver_id', $user->id)
-            ->where('status', 'pending')
+
+        $requests = ChatRequest::pending()
+            ->where('receiver_id', $user->id)
             ->with('sender')
             ->get();
-        
+
         return response()->json(['requests' => $requests]);
     }
-    
-    public function respondToRequest(Request $request, $requestId)
+
+    /**
+     * Respond to a chat request (accept or reject).
+     */
+    public function respondToRequest(Request $request, int $requestId): JsonResponse
     {
         $user = Auth::user();
         $chatRequest = ChatRequest::findOrFail($requestId);
-        
+
         if ($chatRequest->receiver_id !== $user->id) {
-            return response()->json(['success' => false, 'message' => 'دسترسی ندارید'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'دسترسی ندارید',
+            ], 403);
         }
-        
+
         $validated = $request->validate([
             'action' => 'required|in:accept,reject',
         ]);
-        
-        $chatRequest->update([
-            'status' => $validated['action'] === 'accept' ? 'accepted' : 'rejected',
-        ]);
-        
+
+        $action = $validated['action'] === 'accept' ? 'accept' : 'reject';
+        $chatRequest->$action();
+
         return response()->json(['success' => true]);
     }
 
-    // API for polling new messages
-    public function getNewMessages($userId, Request $request)
+    /**
+     * API endpoint to fetch new messages for a chat.
+     */
+    public function getNewMessages(int $userId, Request $request): JsonResponse
     {
         $user = Auth::user();
         $partner = User::findOrFail($userId);
         $lastId = $request->query('last_id');
 
-        // Check if chat request is accepted
-        $chatRequest = ChatRequest::where(function($q) use ($user, $partner) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $partner->id);
-        })->orWhere(function($q) use ($user, $partner) {
-            $q->where('sender_id', $partner->id)->where('receiver_id', $user->id);
-        })->where('status', 'accepted')->first();
-
-        if (!$chatRequest) {
-            return response()->json(['success' => false, 'message' => 'شما اجازه چت با این کاربر را ندارید'], 403);
+        if (!$this->hasActiveChatRequest($user->id, $partner->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'شما اجازه چت با این کاربر را ندارید',
+            ], 403);
         }
 
-        $query = Chat::where(function($q) use ($user, $partner) {
-            $q->where(function($q2) use ($user, $partner) {
-                $q2->where('user_id', $user->id)->where('receiver_id', $partner->id);
-            })->orWhere(function($q2) use ($user, $partner) {
-                $q2->where('user_id', $partner->id)->where('receiver_id', $user->id);
-            });
-        });
+        $query = Chat::betweenUsers($user->id, $partner->id);
 
         if ($lastId) {
             $query->where('id', '>', $lastId);
@@ -247,11 +245,50 @@ class ChatController extends Controller
         ]);
     }
 
-    // API for typing status (optional - can be expanded with broadcasting)
-    public function typingStatus($userId, Request $request)
+    /**
+     * API endpoint to handle typing status notifications.
+     */
+    public function typingStatus(int $userId, Request $request): JsonResponse
     {
-        // For now, just acknowledge the typing status
-        // In a real app, you would broadcast this via WebSocket or Pusher
+        // In a production environment, this would broadcast via WebSocket/Pusher
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Check if two users have an active (accepted) chat request.
+     */
+    private function hasActiveChatRequest(int $userId1, int $userId2): bool
+    {
+        return ChatRequest::betweenUsers($userId1, $userId2)
+            ->accepted()
+            ->exists();
+    }
+
+    /**
+     * Validate uploaded file type and size.
+     *
+     * @return array{error: string|null, type: string|null}
+     */
+    private function validateFile($file): array
+    {
+        $allowedMimes = Chat::ALLOWED_MIME_TYPES;
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'wav', 'webm', 'ogg', 'pdf'];
+
+        if (!in_array($file->getClientOriginalExtension(), $allowedExtensions)) {
+            return ['error' => 'نوع فایل مجاز نیست', 'type' => null];
+        }
+
+        if (!in_array($file->getMimeType(), $allowedMimes)) {
+            return ['error' => 'نوع فایل مجاز نیست', 'type' => null];
+        }
+
+        $fileType = match (true) {
+            str_starts_with($file->getMimeType(), 'image/') => Chat::TYPE_IMAGE,
+            str_starts_with($file->getMimeType(), 'video/') => Chat::TYPE_VIDEO,
+            str_starts_with($file->getMimeType(), 'audio/') => Chat::TYPE_AUDIO,
+            default => Chat::TYPE_FILE,
+        };
+
+        return ['error' => null, 'type' => $fileType];
     }
 }
