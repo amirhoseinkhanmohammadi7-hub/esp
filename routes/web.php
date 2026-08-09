@@ -212,6 +212,7 @@ Route::middleware('auth')->group(function () {
 | مسیرهای احراز هویت (لاگین، ثبت‌نام، خروج)
 |--------------------------------------------------------------------------
 */
+
 // ارسال پیام به صاحب چارت
 Route::post('/chart/{username}/message', function (\Illuminate\Http\Request $request, $username) {
     $validated = $request->validate([
@@ -272,3 +273,4 @@ Route::get('/chart/{username}/pending-messages', function ($username) {
 })->name('profile.pending-messages')->middleware('auth');
 
 require __DIR__.'/auth.php';
+
