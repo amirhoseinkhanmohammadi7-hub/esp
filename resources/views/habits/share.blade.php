@@ -96,7 +96,7 @@
                 @if(!$habit->signatures()->where('user_id', auth()->id())->exists())
                     <form action="{{ route('signatures.store', $habit->share_token) }}" method="POST" class="space-y-3">
                         @csrf
-                        <textarea name="message" class="glass-input" rows="2" placeholder="پیام تشویقی (اختیاری)">{{ old('message') }}</textarea>
+                        <textarea name="message" class="glass-input" rows="2" placeholder="پیام تشویقی (اختیاری)">{{ old('message', '') }}</textarea>
                         <button type="submit" class="btn-primary w-full text-xs">امضا می‌کنم ✨</button>
                     </form>
                 @else

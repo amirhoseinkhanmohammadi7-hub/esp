@@ -310,10 +310,17 @@
                 if (result.messages.length === 0) {
                     container.innerHTML = '<p class="text-white/50 text-sm text-center">هنوز پیامی ثبت نشده</p>';
                 } else {
+                    // Escape HTML to prevent XSS
+                    const escapeHtml = (text) => {
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        return div.innerHTML;
+                    };
+                    
                     container.innerHTML = result.messages.map(msg => `
                         <div class="glass-card p-4">
-                            <div class="font-heading text-sm text-cyan-300 mb-1">${msg.sender_name}</div>
-                            <p class="text-sm text-white/80 font-quote">"${msg.message}"</p>
+                            <div class="font-heading text-sm text-cyan-300 mb-1">${escapeHtml(msg.sender_name)}</div>
+                            <p class="text-sm text-white/80 font-quote">"${escapeHtml(msg.message)}"</p>
                             <div class="text-xs text-white/40 mt-2">${new Date(msg.created_at).toLocaleDateString('fa-IR')}</div>
                         </div>
                     `).join('');
