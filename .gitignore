@@ -1,11 +1,5 @@
-```
-# Laravel-specific ignores
-public/storage/
-storage/
-bootstrap/cache/
-vendor/
-
-# Environment
+```php
+# Environment specific
 .env
 .env.local
 .env.*
@@ -13,50 +7,37 @@ vendor/
 # Logs
 *.log
 
-# Editor/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
+# Cache and temporary files
+.cache/
+tmp/
+temp/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Composer dependencies (if PHP project uses Composer)
+vendor/
 
 # Build artifacts
 dist/
 build/
 target/
-node_modules/
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Python cache (if mixed environment)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 ```
