@@ -208,4 +208,50 @@ class ChatController extends Controller
         
         return response()->json(['success' => true]);
     }
+
+    // API for polling new messages
+    public function getNewMessages($userId, Request $request)
+    {
+        $user = Auth::user();
+        $partner = User::findOrFail($userId);
+        $lastId = $request->query('last_id');
+
+        // Check if chat request is accepted
+        $chatRequest = ChatRequest::where(function($q) use ($user, $partner) {
+            $q->where('sender_id', $user->id)->where('receiver_id', $partner->id);
+        })->orWhere(function($q) use ($user, $partner) {
+            $q->where('sender_id', $partner->id)->where('receiver_id', $user->id);
+        })->where('status', 'accepted')->first();
+
+        if (!$chatRequest) {
+            return response()->json(['success' => false, 'message' => 'شما اجازه چت با این کاربر را ندارید'], 403);
+        }
+
+        $query = Chat::where(function($q) use ($user, $partner) {
+            $q->where(function($q2) use ($user, $partner) {
+                $q2->where('user_id', $user->id)->where('receiver_id', $partner->id);
+            })->orWhere(function($q2) use ($user, $partner) {
+                $q2->where('user_id', $partner->id)->where('receiver_id', $user->id);
+            });
+        });
+
+        if ($lastId) {
+            $query->where('id', '>', $lastId);
+        }
+
+        $messages = $query->orderBy('created_at', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'messages' => $messages,
+        ]);
+    }
+
+    // API for typing status (optional - can be expanded with broadcasting)
+    public function typingStatus($userId, Request $request)
+    {
+        // For now, just acknowledge the typing status
+        // In a real app, you would broadcast this via WebSocket or Pusher
+        return response()->json(['success' => true]);
+    }
 }
