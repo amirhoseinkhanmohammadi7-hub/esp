@@ -1,70 +1,54 @@
 ```
-# Dependencies
-vendor/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
-# Environment
+# Dependencies
+node_modules/
+venv/
+.venv/
 .env
 .env.local
 .env.*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Temporary files
 *.tmp
 *.swp
 *.swo
 
-# IDE
+# Editors
 .vscode/
 .idea/
 
-# OS
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Build artifacts
+# Build directories
 dist/
 build/
 target/
-*.o
-*.obj
-*.out
+.gradle/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.nox/
-.pytest_cache/
+# Python specific
 .mypy_cache/
+.pytest_cache/
 
-# PHP
-*.php~
-*.php.bak
-*.php.swp
-*.php.swo
-composer.lock
-vendor/composer/installed.json
-vendor/composer/installed.php
-vendor/composer/autoload_*.php
-vendor/composer/ClassLoader.php
-vendor/autoload.php
-vendor/bin/*
-
-# Compressed archives
+# Compressed files
 *.zip
 *.gz
 *.tar
@@ -87,5 +71,4 @@ vendor/bin/*
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-
 ```

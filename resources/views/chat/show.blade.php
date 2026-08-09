@@ -39,11 +39,14 @@
                     @if($message->message)
                         <p class="text-sm whitespace-pre-wrap">{{ e($message->message) }}</p>
                     @endif
-                    <div class="text-[10px] text-white/40 mt-1 text-left">{{ $message->created_at->format('H:i') }}</div>
+                    <div class="text-[10px] text-white/40 mt-1 text-left message-time">{{ $message->created_at->format('H:i') }}</div>
                 </div>
             </div>
         @endforeach
     </div>
+    <!-- در حال تایپ -->
+    <div id="typingIndicator" class="hidden px-4 py-2 text-xs text-white/40">در حال تایپ...</div>
+
 
     <!-- فرم ارسال پیام -->
     <form id="chatForm" class="glass-card p-3 mt-4 flex items-center gap-3" enctype="multipart/form-data">
@@ -54,6 +57,11 @@
             📎
         </label>
         <input type="file" id="fileInput" name="file" class="hidden" accept="image/*,video/*,audio/*,.pdf">
+        
+        <button type="button" id="voiceRecordBtn" class="text-white/60 hover:text-white p-2" title="ضبط صدا">
+            🎤
+        </button>
+        <span id="recordingStatus" class="hidden text-xs text-red-400">در حال ضبط...</span>
         
         <input type="text" name="message" id="messageInput" class="glass-input flex-1 text-sm py-2" placeholder="پیام خود را بنویسید...">
         
@@ -71,9 +79,107 @@ const messagesContainer = document.getElementById('messagesContainer');
 const chatForm = document.getElementById('chatForm');
 const messageInput = document.getElementById('messageInput');
 const fileInput = document.getElementById('fileInput');
+const voiceRecordBtn = document.getElementById('voiceRecordBtn');
+const recordingStatus = document.getElementById('recordingStatus');
+const typingIndicator = document.getElementById('typingIndicator');
 
 // Scroll to bottom on load
 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+// System clock for time display
+function updateClock() {
+    const timeElements = document.querySelectorAll('.message-time');
+    timeElements.forEach(el => {
+        const now = new Date();
+        el.textContent = now.toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'});
+    });
+}
+setInterval(updateClock, 1000);
+
+// Typing indicator
+let typingTimeout;
+messageInput.addEventListener('input', () => {
+    typingIndicator.classList.remove('hidden');
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        typingIndicator.classList.add('hidden');
+    }, 1000);
+});
+
+// Voice recording functionality
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+if (voiceRecordBtn) {
+    voiceRecordBtn.addEventListener('click', async () => {
+        if (!isRecording) {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('userId', '{{ $partner->id }}');
+                    formData.append('file', audioBlob, 'voice_message.webm');
+                    
+                    recordingStatus.textContent = 'در حال ارسال ویس...';
+                    
+                    try {
+                        const response = await fetch(`/chat/{{ $partner->id }}/send`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            const msg = result.message;
+                            const fileUrl = '/storage/' + msg.file_path;
+                            const messageHtml = `
+                                <div class="flex justify-end">
+                                    <div class="max-w-[70%] glass-card p-3 bg-purple-500/20 border-purple-500/30">
+                                        <audio controls class="mb-2"><source src="${fileUrl}" type="audio/webm"></audio>
+                                        <div class="text-[10px] text-white/40 mt-1 text-left message-time">${new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</div>
+                                    </div>
+                                </div>
+                            `;
+                            messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }
+                    } catch (error) {
+                        alert('خطا در ارسال ویس');
+                    }
+                    
+                    recordingStatus.textContent = 'در حال ضبط...';
+                    recordingStatus.classList.add('hidden');
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                recordingStatus.classList.remove('hidden');
+                voiceRecordBtn.classList.add('text-red-400');
+            } catch (error) {
+                alert('دسترسی به میکروفون نیاز است');
+            }
+        } else {
+            // Stop recording
+            mediaRecorder.stop();
+            isRecording = false;
+            recordingStatus.classList.add('hidden');
+            voiceRecordBtn.classList.remove('text-red-400');
+        }
+    });
+}
 
 chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
