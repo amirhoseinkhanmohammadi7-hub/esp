@@ -258,6 +258,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/chat-request/{userId}', [ChatController::class, 'sendRequest'])->name('chat.request');
     Route::get('/chat-requests', [ChatController::class, 'getRequests'])->name('chat.requests');
     Route::post('/chat-request/{requestId}/respond', [ChatController::class, 'respondToRequest'])->name('chat.respond');
+    Route::get('/api/chat/{userId}/messages', [ChatController::class, 'getNewMessages'])->name('chat.api.messages');
+    Route::post('/api/chat/{userId}/typing', [ChatController::class, 'typingStatus'])->name('chat.api.typing');
 });
 
 /*
