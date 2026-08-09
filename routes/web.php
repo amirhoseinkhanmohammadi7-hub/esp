@@ -272,5 +272,3 @@ Route::get('/chart/{username}/pending-messages', function ($username) {
     return response()->json(['messages' => $messages]);
 })->name('profile.pending-messages')->middleware('auth');
 
-require __DIR__.'/auth.php';
-
