@@ -100,8 +100,8 @@ class ChatController extends Controller
             $file = $request->file('file');
             
             // Security: Validate file type
-            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'application/pdf'];
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'wav', 'pdf'];
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'application/pdf'];
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'wav', 'webm', 'ogg', 'pdf'];
             
             if (!in_array($file->getClientOriginalExtension(), $allowedExtensions)) {
                 return response()->json(['success' => false, 'message' => 'نوع فایل مجاز نیست'], 400);
