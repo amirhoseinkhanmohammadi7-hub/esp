@@ -8,15 +8,38 @@
         <h1 class="text-xl font-heading mb-6">💬 {{ __('چت‌های من') }}</h1>
 
         @if(session('error'))
-            <x-alert type="error">
-                {{ session('error') }}
-            </x-alert>
+            <div x-data="{ show: true }" 
+                 x-show="show" 
+                 x-transition
+                 class="bg-red-50 text-red-800 border border-red-200 rounded-lg p-4 mb-4"
+                 role="alert">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <span class="text-lg font-bold">✕</span>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="text-sm">
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button type="button" 
+                                @click="show = false"
+                                class="inline-flex rounded-md p-1.5 hover:bg-black/10 focus:outline-none"
+                                aria-label="Dismiss">
+                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         @endif
 
         {{-- Pending Requests Section --}}
-        <section id="pendingRequests" class="mb-6">
+        <section id="pendingRequests" class="mb-6" x-show="true">
             <h2 class="text-lg font-heading mb-3">📩 {{ __('درخواست‌های در انتظار') }}</h2>
-            <div id="requestsList" class="space-y-2" x-html="loadingMessage()">
+            <div id="requestsList" class="space-y-2">
                 <p class="text-white/50 text-sm">{{ __('در حال بارگذاری...') }}</p>
             </div>
         </section>
@@ -78,10 +101,6 @@ function chatRequestsManager() {
             await this.loadPendingRequests();
         },
         
-        loadingMessage() {
-            return `<p class="text-white/50 text-sm">${this.isLoading ? '{{ __('در حال بارگذاری...') }}' : '${this.requests.length === 0 ? '{{ __('هیچ درخواستی ندارید') }}' : ''}</p>`;
-        },
-        
         async loadPendingRequests() {
             try {
                 const response = await fetch('{{ route('chat.requests') }}');
@@ -91,7 +110,7 @@ function chatRequestsManager() {
                 this.renderRequests();
             } catch (error) {
                 console.error('Error loading requests:', error);
-                this.showError('{{ __('خطا در بارگذاری درخواست‌ها') }}');
+                alert('{{ __('خطا در بارگذاری درخواست‌ها') }}');
             } finally {
                 this.isLoading = false;
             }
@@ -99,6 +118,8 @@ function chatRequestsManager() {
         
         renderRequests() {
             const container = document.getElementById('requestsList');
+            
+            if (!container) return;
             
             if (this.requests.length === 0) {
                 container.innerHTML = '<p class="text-white/50 text-sm">{{ __('هیچ درخواستی ندارید') }}</p>';
@@ -113,12 +134,12 @@ function chatRequestsManager() {
                              class="w-8 h-8 rounded-full object-cover">
                         <span class="text-sm">${this.escapeHtml(req.sender.name)}</span>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="Alpine.store('chatRequests').respondToRequest(${req.id}, 'accept')" 
+                    <div class="flex gap-2" x-data="{ reqId: ${req.id} }">
+                        <button @click="$root.parentElement.parentElement.__x.$data.respondToRequest(reqId, 'accept')" 
                                 class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg text-xs transition-colors">
                             ✅ {{ __('قبول') }}
                         </button>
-                        <button onclick="Alpine.store('chatRequests').respondToRequest(${req.id}, 'reject')" 
+                        <button @click="$root.parentElement.parentElement.__x.$data.respondToRequest(reqId, 'reject')" 
                                 class="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-3 py-1.5 rounded-lg text-xs transition-colors">
                             ❌ {{ __('رد') }}
                         </button>
@@ -148,7 +169,7 @@ function chatRequestsManager() {
                 }
             } catch (error) {
                 console.error('Error responding to request:', error);
-                this.showError('{{ __('خطا در پاسخ به درخواست') }}');
+                alert('{{ __('خطا در پاسخ به درخواست') }}');
             }
         },
         
@@ -157,10 +178,6 @@ function chatRequestsManager() {
             if (badge && this.requests.length === 0) {
                 badge.classList.add('hidden');
             }
-        },
-        
-        showError(message) {
-            alert(message);
         },
         
         escapeHtml(text) {
@@ -174,16 +191,6 @@ function chatRequestsManager() {
         }
     };
 }
-
-// Initialize Alpine store for global access
-document.addEventListener('alpine:init', () => {
-    Alpine.store('chatRequests', {
-        async respondToRequest(requestId, action) {
-            const component = document.querySelector('[x-data="chatRequestsManager()"]').__x.$data;
-            await component.respondToRequest(requestId, action);
-        }
-    });
-});
 </script>
 @endpush
 
