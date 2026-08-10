@@ -19,9 +19,59 @@ class SleepLog extends Model {
     
     protected $casts = [
         'log_date' => 'date',
-        'sleep_quality' => 'integer',
         'sleep_duration_minutes' => 'integer',
     ];
+
+    /**
+     * مقادیر مجاز کیفیت خواب
+     */
+    public static function qualityOptions(): array {
+        return [
+            'very_poor' => 'خیلی بد 😫',
+            'poor' => 'بد 😴',
+            'fair' => 'متوسط 😐',
+            'good' => 'خوب 🙂',
+            'excellent' => 'خیلی خوب 🌟'
+        ];
+    }
+
+    /**
+     * امتیاز عددی برای هر کیفیت خواب
+     */
+    public static function qualityScore(string $quality): int {
+        return match($quality) {
+            'very_poor' => 1,
+            'poor' => 2,
+            'fair' => 3,
+            'good' => 4,
+            'excellent' => 5,
+            default => 0
+        };
+    }
+
+    /**
+     * دریافت لیبل فارسی کیفیت خواب
+     */
+    public function getQualityLabel(): string {
+        if (!$this->sleep_quality) {
+            return 'ثبت نشده';
+        }
+        return self::qualityOptions()[$this->sleep_quality] ?? 'نامشخص';
+    }
+
+    /**
+     * رنگ مربوط به هر کیفیت خواب
+     */
+    public function getQualityColor(): string {
+        return match($this->sleep_quality) {
+            'excellent' => 'green',
+            'good' => 'blue',
+            'fair' => 'yellow',
+            'poor' => 'orange',
+            'very_poor' => 'red',
+            default => 'gray'
+        };
+    }
 
     public function user(): BelongsTo {
         return $this->belongsTo(User::class);
@@ -64,17 +114,6 @@ class SleepLog extends Model {
             return "{$hours}س و {$minutes}د";
         }
         return "{$minutes}د";
-    }
-
-    /**
-     * دریافت کیفیت خواب به صورت ستاره
-     */
-    public function getQualityStars(): string {
-        if (!$this->sleep_quality) {
-            return '';
-        }
-        
-        return str_repeat('⭐', $this->sleep_quality);
     }
 
     /**
@@ -129,32 +168,43 @@ class SleepLog extends Model {
     }
 
     /**
-     * میانگین کیفیت خواب در X روز اخیر
+     * میانگین کیفیت خواب در X روز اخیر (به صورت امتیاز عددی)
      */
-    public static function getAverageSleepQuality(int $userId, int $days = 7): ?float {
-        $avg = self::where('user_id', $userId)
+    public static function getAverageSleepQualityScore(int $userId, int $days = 7): ?float {
+        $logs = self::where('user_id', $userId)
             ->where('log_date', '>=', Carbon::today()->subDays($days - 1))
             ->whereNotNull('sleep_quality')
-            ->avg('sleep_quality');
+            ->get();
         
-        return $avg ? round($avg, 1) : null;
+        if ($logs->isEmpty()) {
+            return null;
+        }
+        
+        $totalScore = 0;
+        foreach ($logs as $log) {
+            $totalScore += self::qualityScore($log->sleep_quality);
+        }
+        
+        return round($totalScore / $logs->count(), 1);
     }
 
     /**
-     * تحلیل کیفیت خواب بر اساس چرخه‌های خواب و نمره کیفیت خواب کاربر
+     * تحلیل کیفیت خواب بر اساس چرخه‌های خواب و زمان خواب
      * هر چرخه خواب حدود 90 دقیقه است
      * خواب ایده‌آل: 5-6 چرخه (7.5-9 ساعت)
-     * نمره کیفیت خواب کاربر هم در محاسبه نهایی دخیل می‌شود
+     * زمان خوابیدن هم مهم است (خوابیدن قبل از نیمه شب بهتر است)
      */
     public function analyzeSleepCycles(): array {
-        if (!$this->sleep_duration_minutes && !$this->sleep_quality) {
+        if (!$this->sleep_duration_minutes && !$this->bedtime) {
             return [
                 'cycles' => 0,
                 'quality_score' => 0,
                 'quality_label' => 'نامشخص',
                 'quality_description' => 'زمان خواب و بیداری ثبت نشده است',
                 'recommendation' => 'لطفاً زمان خواب و بیداری خود را وارد کنید',
-                'color' => 'gray'
+                'color' => 'gray',
+                'bedtime_score' => 0,
+                'duration_score' => 0
             ];
         }
 
@@ -169,112 +219,119 @@ class SleepLog extends Model {
             $durationLabel = 'عالی';
             $durationDescription = 'مدت خواب شما در محدوده ایده‌آل قرار دارد!';
             $durationRecommendation = 'همین روند را ادامه دهید 👏';
-            $color = 'green';
         } elseif ($cycles == 4) {
             // خواب خوب (6 ساعت)
             $durationScore = 75;
             $durationLabel = 'خوب';
             $durationDescription = 'مدت خواب قابل قبولی داشتید';
             $durationRecommendation = 'سعی کنید 1-2 چرخه دیگر هم بخوابید';
-            $color = 'blue';
         } elseif ($cycles == 3) {
             // خواب متوسط (4.5 ساعت)
             $durationScore = 50;
             $durationLabel = 'متوسط';
             $durationDescription = 'خواب شما کمتر از حد توصیه شده است';
             $durationRecommendation = 'سعی کنید زودتر بخوابید تا حداقل 5 چرخه کامل شود';
-            $color = 'yellow';
         } elseif ($cycles < 3 && $cycles > 0) {
             // خواب کم
             $durationScore = 25;
             $durationLabel = 'ضعیف';
             $durationDescription = 'خواب شما بسیار کم است';
             $durationRecommendation = 'برای سلامتی بیشتر بخوابید (حداقل 6-7 ساعت)';
-            $color = 'red';
         } elseif ($cycles > 6) {
             // خواب زیاد (بیش از 6 چرخه)
             $durationScore = 60;
             $durationLabel = 'زیاد';
             $durationDescription = 'خواب شما بیشتر از حد معمول است';
             $durationRecommendation = 'خواب بیش از حد هم می‌تواند باعث خستگی شود';
-            $color = 'orange';
         } else {
             // اگر مدت خواب ثبت نشده
             $durationScore = 0;
             $durationLabel = 'ثبت نشده';
             $durationDescription = 'مدت خواب ثبت نشده است';
             $durationRecommendation = 'زمان خواب و بیداری خود را وارد کنید';
-            $color = 'gray';
         }
 
-        // محاسبه امتیاز کیفیت خواب کاربر (1-5 ستاره -> 20-100)
-        $qualityScoreFromUser = $this->sleep_quality ? ($this->sleep_quality * 20) : 0;
-        
-        // ترکیب امتیاز مدت خواب و کیفیت خواب کاربر
-        // اگر هر دو موجود باشند، میانگین می‌گیریم
-        if ($this->sleep_duration_minutes && $this->sleep_quality) {
-            // ترکیب 60% مدت خواب + 40% کیفیت خواب کاربر
-            $finalScore = round(($durationScore * 0.6) + ($qualityScoreFromUser * 0.4));
+        // محاسبه امتیاز زمان خواب (bedtime score)
+        // خوابیدن بین 21:00 تا 23:00 بهترین زمان است
+        $bedtimeScore = 0;
+        $bedtimeLabel = '';
+        if ($this->bedtime) {
+            $bedHour = (int) substr($this->bedtime, 0, 2);
             
-            // تنظیم رنگ بر اساس امتیاز نهایی
+            if ($bedHour >= 21 && $bedHour <= 23) {
+                // بهترین زمان خواب (9-11 شب)
+                $bedtimeScore = 100;
+                $bedtimeLabel = 'زمان عالی برای خواب';
+            } elseif ($bedHour >= 19 && $bedHour < 21) {
+                // زود ولی خوب (7-9 شب)
+                $bedtimeScore = 85;
+                $bedtimeLabel = 'زمان خوبی برای خواب';
+            } elseif ($bedHour == 0 || $bedHour == 24) {
+                // نیمه شب
+                $bedtimeScore = 70;
+                $bedtimeLabel = 'زمان قابل قبول';
+            } elseif ($bedHour >= 1 && $bedHour <= 2) {
+                // 1-2 صبح - دیر ولی هنوز قابل قبول
+                $bedtimeScore = 50;
+                $bedtimeLabel = 'کمی دیر';
+            } elseif ($bedHour >= 3 && $bedHour <= 5) {
+                // 3-5 صبح - خیلی دیر
+                $bedtimeScore = 25;
+                $bedtimeLabel = 'خیلی دیر';
+            } else {
+                // سایر مواقع
+                $bedtimeScore = 40;
+                $bedtimeLabel = 'زمان نامناسب';
+            }
+        }
+
+        // ترکیب امتیازات: 50% مدت خواب + 30% زمان خواب + 20% کیفیت احساسی
+        $qualityScoreFromUser = $this->sleep_quality ? (self::qualityScore($this->sleep_quality) * 20) : 0;
+        
+        if ($this->sleep_duration_minutes && $this->bedtime) {
+            // ترکیب نهایی: 50% مدت + 30% زمان + 20% کیفیت احساسی
+            $finalScore = round(($durationScore * 0.5) + ($bedtimeScore * 0.3) + ($qualityScoreFromUser * 0.2));
+            
+            // تنظیم رنگ و لیبل بر اساس امتیاز نهایی
             if ($finalScore >= 80) {
                 $color = 'green';
                 $qualityLabel = 'عالی';
-                $qualityDescription = "خواب عالی داشتید! مدت خواب: {$durationLabel}، کیفیت احساسی: " . str_repeat('⭐', $this->sleep_quality);
+                $qualityDescription = "خواب عالی داشتید! مدت: {$durationLabel}, زمان خواب: {$bedtimeLabel}";
                 $recommendation = 'همین روند عالی را ادامه دهید 👏';
             } elseif ($finalScore >= 60) {
                 $color = 'blue';
                 $qualityLabel = 'خوب';
-                $qualityDescription = "خواب خوبی داشتید. مدت خواب: {$durationLabel}، کیفیت احساسی: " . str_repeat('⭐', $this->sleep_quality);
+                $qualityDescription = "خواب خوبی داشتید. مدت: {$durationLabel}, زمان خواب: {$bedtimeLabel}";
                 $recommendation = $durationRecommendation;
             } elseif ($finalScore >= 40) {
                 $color = 'yellow';
                 $qualityLabel = 'متوسط';
-                $qualityDescription = "خواب متوسطی داشتید. مدت خواب: {$durationLabel}، کیفیت احساسی: " . str_repeat('⭐', $this->sleep_quality);
-                $recommendation = 'سعی کنید هم مدت خواب و هم کیفیت آن را بهبود بخشید';
+                $qualityDescription = "خواب متوسطی داشتید. مدت: {$durationLabel}, زمان خواب: {$bedtimeLabel}";
+                $recommendation = 'سعی کنید هم مدت خواب و هم زمان آن را بهبود بخشید';
             } elseif ($finalScore >= 20) {
                 $color = 'orange';
                 $qualityLabel = 'ضعیف';
-                $qualityDescription = "خواب ضعیفی داشتید. مدت خواب: {$durationLabel}، کیفیت احساسی: " . str_repeat('⭐', $this->sleep_quality);
+                $qualityDescription = "خواب ضعیفی داشتید. مدت: {$durationLabel}, زمان خواب: {$bedtimeLabel}";
                 $recommendation = 'به برنامه خواب منظم‌تری نیاز دارید';
             } else {
                 $color = 'red';
                 $qualityLabel = 'بسیار ضعیف';
-                $qualityDescription = "خواب بسیار ضعیفی داشتید. مدت خواب: {$durationLabel}، کیفیت احساسی: " . str_repeat('⭐', $this->sleep_quality);
+                $qualityDescription = "خواب بسیار ضعیفی داشتید. مدت: {$durationLabel}, زمان خواب: {$bedtimeLabel}";
                 $recommendation = 'برای بهبود خواب خود اقدام کنید';
             }
         } elseif ($this->sleep_duration_minutes) {
             // فقط مدت خواب موجود است
             $finalScore = $durationScore;
             $qualityLabel = $durationLabel;
-            $qualityDescription = $durationDescription . ' (کیفیت احساسی ثبت نشده)';
+            $qualityDescription = $durationDescription . ' (زمان خواب ثبت نشده)';
             $recommendation = $durationRecommendation;
         } else {
-            // فقط کیفیت خواب موجود است
-            $finalScore = $qualityScoreFromUser;
+            // فقط زمان خواب موجود است
+            $finalScore = $bedtimeScore;
             $cycles = 0;
-            
-            if ($finalScore >= 80) {
-                $color = 'green';
-                $qualityLabel = 'عالی';
-                $qualityDescription = "کیفیت خواب احساسی عالی بود: " . str_repeat('⭐', $this->sleep_quality);
-                $recommendation = 'عالی است! حالا سعی کنید مدت خواب مناسبی هم داشته باشید';
-            } elseif ($finalScore >= 60) {
-                $color = 'blue';
-                $qualityLabel = 'خوب';
-                $qualityDescription = "کیفیت خواب احساسی خوبی داشتید: " . str_repeat('⭐', $this->sleep_quality);
-                $recommendation = 'خوب است! مدت خواب مناسب هم اضافه کنید';
-            } elseif ($finalScore >= 40) {
-                $color = 'yellow';
-                $qualityLabel = 'متوسط';
-                $qualityDescription = "کیفیت خواب احساسی متوسط: " . str_repeat('⭐', $this->sleep_quality);
-                $recommendation = 'سعی کنید کیفیت و مدت خواب را بهبود بخشید';
-            } else {
-                $color = 'red';
-                $qualityLabel = 'ضعیف';
-                $qualityDescription = "کیفیت خواب احساسی ضعیف: " . str_repeat('⭐', $this->sleep_quality);
-                $recommendation = 'به بهبود کیفیت خواب خود توجه کنید';
-            }
+            $qualityLabel = $bedtimeLabel ?: 'ثبت نشده';
+            $qualityDescription = "زمان خواب: {$bedtimeLabel} (مدت خواب ثبت نشده)";
+            $recommendation = 'زمان بیداری خود را هم وارد کنید تا تحلیل کامل‌تری دریافت کنید';
         }
 
         return [
@@ -285,6 +342,7 @@ class SleepLog extends Model {
             'recommendation' => $recommendation,
             'color' => $color,
             'duration_score' => $durationScore,
+            'bedtime_score' => $bedtimeScore,
             'user_quality_score' => $qualityScoreFromUser
         ];
     }
