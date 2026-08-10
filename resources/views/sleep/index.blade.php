@@ -195,7 +195,7 @@
                                 {{ $log->getFormattedDuration() }}
                             </td>
                             <td class="px-4 py-3">
-                                <span class="text-xs">{{ $log->getQualityStars() }}</span>
+                                <span class="text-xs">{{ $log->getQualityLabel() }}</span>
                             </td>
                             <td class="px-4 py-3 text-left">
                                 <button @click="editingLog = {{ $log->id }}; showTodayModal = true" 

@@ -4,49 +4,31 @@
 __pycache__/
 *.o
 *.obj
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
-
-# Dependencies
-node_modules/
-vendor/
-composer.lock
-.env
-.env.local
-.env.*
-.env..*
-.env.local.*
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.coverage
-coverage/
-htmlcov/
-
-# Build directories
 dist/
 build/
 target/
-.gradle/
+
+# Dependencies
+vendor/
+node_modules/
+.env
+.env.local
+.env.*
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
-*.swo
 
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# System files
+# OS generated files
 .DS_Store
 Thumbs.db
+
+# Laravel specific
+/storage/logs/*
+/bootstrap/cache/*
 ```
