@@ -5,6 +5,7 @@ use App\Http\Controllers\HabitController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SleepLogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -192,6 +193,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // ردیاب خواب
+    Route::get('/sleep', [SleepLogController::class, 'index'])->name('sleep.index');
+    Route::post('/sleep', [SleepLogController::class, 'store'])->name('sleep.store');
+    Route::put('/sleep/{sleepLog}', [SleepLogController::class, 'update'])->name('sleep.update');
+    Route::delete('/sleep/{sleepLog}', [SleepLogController::class, 'destroy'])->name('sleep.destroy');
 
     // عادت‌ها
     Route::get('/habits', [HabitController::class, 'index'])->name('habits.index');
