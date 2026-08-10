@@ -1,15 +1,20 @@
-{{-- Delete Account Section --}}
-<div class="glass-card p-6 border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/50">
-    <div class="flex items-center gap-3 mb-4">
-        <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-            <span class="text-2xl">⚠️</span>
+{{-- Delete Account Section - Modal Version --}}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span class="text-2xl">⚠️</span>
+            </div>
+            <div>
+                <h2 class="text-xl font-heading text-red-300">منطقه خطر</h2>
+                <p class="text-xs text-white/50">اقدامات غیرقابل بازگشت</p>
+            </div>
         </div>
-        <div>
-            <h2 class="text-xl font-heading text-red-300">منطقه خطر</h2>
-            <p class="text-xs text-white/50">اقدامات غیرقابل بازگشت</p>
-        </div>
+        <button onclick="closeModal(null, 'delete-modal')" class="text-white/50 hover:text-white transition-colors">
+            <span class="text-2xl">×</span>
+        </button>
     </div>
-
+    
     <div class="space-y-4">
         {{-- Warning Message --}}
         <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">

@@ -1,8 +1,13 @@
-{{-- Achievements Card --}}
-<div class="glass-card p-6">
-    <h2 class="text-lg font-heading text-white mb-4 flex items-center gap-2">
-        <span class="text-yellow-400">🏆</span> دستاوردها
-    </h2>
+{{-- Achievements Card - Modal Version --}}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-heading text-white flex items-center gap-2">
+            <span class="text-yellow-400">🏆</span> دستاوردها
+        </h2>
+        <button onclick="closeModal(null, 'achievements-modal')" class="text-white/50 hover:text-white transition-colors">
+            <span class="text-2xl">×</span>
+        </button>
+    </div>
     
     @if($user->achievements->isEmpty())
         <div class="text-center py-8">

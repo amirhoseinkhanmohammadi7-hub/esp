@@ -1,8 +1,13 @@
-{{-- Stats Sidebar --}}
-<div class="glass-card p-6">
-    <h2 class="text-lg font-heading text-white mb-4 flex items-center gap-2">
-        <span class="text-pink-400">📊</span> آمار من
-    </h2>
+{{-- Stats Sidebar - Modal Version --}}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-heading text-white flex items-center gap-2">
+            <span class="text-pink-400">📊</span> آمار من
+        </h2>
+        <button onclick="closeModal(null, 'stats-modal')" class="text-white/50 hover:text-white transition-colors">
+            <span class="text-2xl">×</span>
+        </button>
+    </div>
     
     <div class="space-y-4">
         {{-- Total Habits --}}
@@ -45,7 +50,6 @@
                 <div>
                     <p class="text-xs text-white/60">زنجیره فعلی</p>
                     @php
-                        // Calculate current streak (simplified - you can improve this logic)
                         $streak = 0;
                         $today = now()->startOfDay();
                         foreach($user->habits as $habit) {
