@@ -23,13 +23,16 @@ class SleepLogController extends Controller {
         
         // آمار هفته جاری
         $avgDuration = SleepLog::getAverageSleepDuration($user->id, 7);
-        $avgQuality = SleepLog::getAverageSleepQuality($user->id, 7);
+        $avgQuality = SleepLog::getAverageSleepQualityScore($user->id, 7);
         $todayLog = SleepLog::getTodayLog($user->id);
         
         // آماده‌سازی داده‌ها برای نمودار
         $chartData = $this->prepareChartData($sleepLogs);
         
-        return view('sleep.index', compact('sleepLogs', 'avgDuration', 'avgQuality', 'todayLog', 'chartData'));
+        // گزینه‌های کیفیت خواب
+        $qualityOptions = SleepLog::qualityOptions();
+        
+        return view('sleep.index', compact('sleepLogs', 'avgDuration', 'avgQuality', 'todayLog', 'chartData', 'qualityOptions'));
     }
     
     /**
@@ -53,7 +56,7 @@ class SleepLogController extends Controller {
             $sleepDurations[] = $log->sleep_duration_minutes ? round($log->sleep_duration_minutes / 60, 1) : null;
             
             // نمره کیفیت خواب (1-5)
-            $qualityScores[] = $log->sleep_quality;
+            $qualityScores[] = $log->sleep_quality ? SleepLog::qualityScore($log->sleep_quality) : null;
             
             // زمان خواب و بیداری برای نمایش
             $bedTimes[] = $log->bedtime ?? null;
@@ -76,7 +79,7 @@ class SleepLogController extends Controller {
         $validated = $request->validate([
             'bedtime' => 'nullable|date_format:H:i',
             'wake_time' => 'nullable|date_format:H:i',
-            'sleep_quality' => 'nullable|integer|min:1|max:5',
+            'sleep_quality' => 'nullable|in:very_poor,poor,fair,good,excellent',
             'note' => 'nullable|string|max:500',
         ]);
         
@@ -125,7 +128,7 @@ class SleepLogController extends Controller {
         $validated = $request->validate([
             'bedtime' => 'nullable|date_format:H:i',
             'wake_time' => 'nullable|date_format:H:i',
-            'sleep_quality' => 'nullable|integer|min:1|max:5',
+            'sleep_quality' => 'nullable|in:very_poor,poor,fair,good,excellent',
             'note' => 'nullable|string|max:500',
         ]);
         
