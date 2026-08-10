@@ -1,8 +1,11 @@
+```
 # Compiled and build artifacts
 *.pyc
 __pycache__/
 *.o
 *.obj
+dist/
+build/
 *.class
 *.exe
 *.dll
@@ -14,17 +17,9 @@ __pycache__/
 node_modules/
 vendor/
 composer.lock
-*.lock
 .env
 .env.local
 .env.*
-
-# Build directories
-dist/
-build/
-target/
-coverage/
-htmlcov/
 
 # Logs and temp files
 *.log
@@ -38,19 +33,31 @@ htmlcov/
 *.swp
 *.swo
 
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Cache
-.mypy_cache/
-.pytest_cache/
-.gradle/
-.cargo/
-zig-cache/
-zig-out/
+# Laravel specific
+bootstrap/cache/
+storage/logs/
+storage/framework/
+public/storage/
 
-# Archives
+# MyPy
+.mypy_cache/
+# PyTest
+.pytest_cache/
+
+# Gradle
+.gradle/
+target/
+
+# Compressed files
 *.zip
 *.gz
 *.tar
@@ -73,3 +80,4 @@ zig-out/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+```
