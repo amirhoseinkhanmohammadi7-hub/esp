@@ -10,14 +10,6 @@
             <p class="text-white/60 text-sm mb-3 max-w-lg mx-auto">{{ e($user->bio) }}</p>
         @endif
         <p class="text-white/40 text-xs">عضو از {{ $user->joined_at ? $user->joined_at->format('Y/m/d') : 'اخیراً' }}</p>
-        
-        @auth
-            @if(auth()->id() !== $user->id)
-                <button onclick="sendChatRequest({{ $user->id }})" class="mt-4 btn-primary text-sm inline-flex items-center gap-2">
-                    <span>💬</span> درخواست چت
-                </button>
-            @endif
-        @endauth
     </div>
 
     <!-- نمودار رشد -->
@@ -203,26 +195,6 @@ async function loadMessages() {
         }
     } catch (error) {
         console.error('خطا در بارگذاری پیام‌ها:', error);
-    }
-}
-
-async function sendChatRequest(targetUserId) {
-    try {
-        const response = await fetch(`/chat-request/${targetUserId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        });
-        const result = await response.json();
-        if (result.success) {
-            alert('✅ درخواست چت ارسال شد');
-        } else {
-            alert('❌ ' + result.message);
-        }
-    } catch (error) {
-        alert('خطا در ارسال درخواست چت');
     }
 }
 
