@@ -139,4 +139,87 @@ class SleepLog extends Model {
         
         return $avg ? round($avg, 1) : null;
     }
+
+    /**
+     * تحلیل کیفیت خواب بر اساس چرخه‌های خواب
+     * هر چرخه خواب حدود 90 دقیقه است
+     * خواب ایده‌آل: 5-6 چرخه (7.5-9 ساعت)
+     */
+    public function analyzeSleepCycles(): array {
+        if (!$this->sleep_duration_minutes) {
+            return [
+                'cycles' => 0,
+                'quality_score' => 0,
+                'quality_label' => 'نامشخص',
+                'quality_description' => 'زمان خواب و بیداری ثبت نشده است',
+                'recommendation' => 'لطفاً زمان خواب و بیداری خود را وارد کنید',
+                'color' => 'gray'
+            ];
+        }
+
+        // هر چرخه خواب حدود 90 دقیقه
+        $cycleMinutes = 90;
+        $cycles = floor($this->sleep_duration_minutes / $cycleMinutes);
+        
+        // تعیین کیفیت بر اساس تعداد چرخه‌ها
+        if ($cycles >= 5 && $cycles <= 6) {
+            // خواب عالی (7.5 تا 9 ساعت)
+            $qualityScore = 100;
+            $qualityLabel = 'عالی';
+            $qualityDescription = 'خواب شما در محدوده ایده‌آل قرار دارد!';
+            $recommendation = 'همین روند را ادامه دهید 👏';
+            $color = 'green';
+        } elseif ($cycles == 4) {
+            // خواب خوب (6 ساعت)
+            $qualityScore = 75;
+            $qualityLabel = 'خوب';
+            $qualityDescription = 'خواب قابل قبولی داشتید';
+            $recommendation = 'سعی کنید 1-2 چرخه دیگر هم بخوابید';
+            $color = 'blue';
+        } elseif ($cycles == 3) {
+            // خواب متوسط (4.5 ساعت)
+            $qualityScore = 50;
+            $qualityLabel = 'متوسط';
+            $qualityDescription = 'خواب شما کمتر از حد توصیه شده است';
+            $recommendation = 'سعی کنید زودتر بخوابید تا حداقل 5 چرخه کامل شود';
+            $color = 'yellow';
+        } elseif ($cycles < 3) {
+            // خواب کم
+            $qualityScore = 25;
+            $qualityLabel = 'ضعیف';
+            $qualityDescription = 'خواب شما بسیار کم است';
+            $recommendation = 'برای سلامتی بیشتر بخوابید (حداقل 6-7 ساعت)';
+            $color = 'red';
+        } else {
+            // خواب زیاد (بیش از 6 چرخه)
+            $qualityScore = 60;
+            $qualityLabel = 'زیاد';
+            $qualityDescription = 'خواب شما بیشتر از حد معمول است';
+            $recommendation = 'خواب بیش از حد هم می‌تواند باعث خستگی شود';
+            $color = 'orange';
+        }
+
+        return [
+            'cycles' => $cycles,
+            'quality_score' => $qualityScore,
+            'quality_label' => $qualityLabel,
+            'quality_description' => $qualityDescription,
+            'recommendation' => $recommendation,
+            'color' => $color
+        ];
+    }
+
+    /**
+     * دریافت درصد تکمیل چرخه فعلی
+     */
+    public function getCurrentCycleProgress(): float {
+        if (!$this->sleep_duration_minutes) {
+            return 0;
+        }
+        
+        $cycleMinutes = 90;
+        $progress = ($this->sleep_duration_minutes % $cycleMinutes) / $cycleMinutes * 100;
+        
+        return round($progress, 0);
+    }
 }
