@@ -1,11 +1,14 @@
-{{-- Update Password Section --}}
-<div class="glass-card p-6">
-    <div class="flex items-center gap-4 mb-6">
-        <h2 class="text-xl font-heading text-white">
+{{-- Update Password Section - Modal Version --}}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-heading text-white flex items-center gap-2">
             <span class="text-cyan-400">🔒</span> تغییر رمز عبور
         </h2>
+        <button onclick="closeModal(null, 'password-modal')" class="text-white/50 hover:text-white transition-colors">
+            <span class="text-2xl">×</span>
+        </button>
     </div>
-
+    
     <form method="POST" action="{{ route('password.update') }}" class="space-y-5">
         @csrf
         @method('PUT')

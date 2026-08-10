@@ -1,11 +1,14 @@
-{{-- Profile Information Card --}}
-<div class="glass-card p-6">
-    <div class="flex items-center gap-4 mb-6">
-        <h2 class="text-xl font-heading text-white">
+{{-- Profile Information Card - Modal Version --}}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-heading text-white flex items-center gap-2">
             <span class="text-purple-400">👤</span> اطلاعات پروفایل
         </h2>
+        <button onclick="closeModal(null, 'profile-modal')" class="text-white/50 hover:text-white transition-colors">
+            <span class="text-2xl">×</span>
+        </button>
     </div>
-
+    
     <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-5">
         @csrf
         @method('PATCH')
