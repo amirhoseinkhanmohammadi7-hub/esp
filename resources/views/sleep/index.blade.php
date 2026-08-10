@@ -52,7 +52,7 @@
     </div>
 
     <!-- تحلیل چرخه‌های خواب برای آخرین لاگ -->
-    @if($sleepLogs->first() && $sleepLogs->first()->sleep_duration_minutes)
+    @if($sleepLogs->first() && ($sleepLogs->first()->sleep_duration_minutes || $sleepLogs->first()->sleep_quality))
         @php
             $sleepAnalysis = $sleepLogs->first()->analyzeSleepCycles();
         @endphp
@@ -148,6 +148,14 @@
                     </div>
                 </div>
             </div>
+        </div>
+    @endif
+
+    <!-- نمودار هفتگی خواب -->
+    @if(isset($chartData) && count($chartData['labels']) > 0)
+        <div class="glass-card p-6">
+            <h2 class="text-lg font-heading mb-4">📈 روند خواب در ۷ روز گذشته</h2>
+            <canvas id="sleepChart" height="100"></canvas>
         </div>
     @endif
 
@@ -298,11 +306,197 @@
 </div>
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // وقتی مودال باز میشه، اگر در حال ویرایش هستیم مقادیر را پر کن
 document.addEventListener('alpine:init', () => {
     // Alpine.js handles the modal state
 });
+
+// رسم نمودار خواب
+@if(isset($chartData) && count($chartData['labels']) > 0)
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('sleepChart').getContext('2d');
+    
+    // داده‌ها از سرور
+    const labels = @json($chartData['labels']);
+    const sleepDurations = @json($chartData['sleepDurations']);
+    const qualityScores = @json($chartData['qualityScores']);
+    const bedTimes = @json($chartData['bedTimes']);
+    const wakeTimes = @json($chartData['wakeTimes']);
+    
+    // ساخت لیبل زمان خواب-بیداری برای tooltip
+    const sleepTimeLabels = bedTimes.map((bed, i) => {
+        const wake = wakeTimes[i];
+        if (bed && wake) {
+            return `${bed}-${wake}`;
+        } else if (bed) {
+            return `${bed}-?`;
+        } else if (wake) {
+            return `?-${wake}`;
+        } else {
+            return 'ثبت نشده';
+        }
+    });
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'مدت خواب (ساعت)',
+                    data: sleepDurations,
+                    backgroundColor: 'rgba(139, 92, 246, 0.5)',
+                    borderColor: 'rgba(139, 92, 246, 1)',
+                    borderWidth: 2,
+                    yAxisID: 'y',
+                    borderRadius: 8,
+                },
+                {
+                    label: 'کیفیت خواب',
+                    data: qualityScores,
+                    type: 'line',
+                    borderColor: 'rgba(251, 191, 36, 1)',
+                    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+                    borderWidth: 3,
+                    pointBackgroundColor: 'rgba(251, 191, 36, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    yAxisID: 'y1',
+                    tension: 0.4,
+                    fill: false,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 12,
+                        },
+                    },
+                    rtl: true,
+                },
+                tooltip: {
+                    rtl: true,
+                    textDirection: 'rtl',
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: 'rgba(255, 255, 255, 0.9)',
+                    bodyColor: 'rgba(255, 255, 255, 0.7)',
+                    borderColor: 'rgba(139, 92, 246, 0.5)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.dataset.yAxisID === 'y') {
+                                label += context.parsed.y + ' ساعت';
+                            } else {
+                                label += context.parsed.y + ' ستاره';
+                            }
+                            return label;
+                        },
+                        afterBody: function(context) {
+                            const index = context[0].dataIndex;
+                            return '\\nزمان خواب: ' + sleepTimeLabels[index];
+                        }
+                    },
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 11,
+                        },
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)',
+                    },
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: 0,
+                    max: Math.max(...sleepDurations.filter(v => v !== null), 10),
+                    ticks: {
+                        color: 'rgba(139, 92, 246, 1)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 11,
+                        },
+                        callback: function(value) {
+                            return value + 'س';
+                        },
+                    },
+                    grid: {
+                        color: 'rgba(139, 92, 246, 0.2)',
+                    },
+                    title: {
+                        display: true,
+                        text: 'مدت خواب (ساعت)',
+                        color: 'rgba(139, 92, 246, 1)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 12,
+                        },
+                    },
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        color: 'rgba(251, 191, 36, 1)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 11,
+                        },
+                        stepSize: 1,
+                        callback: function(value) {
+                            return '⭐'.repeat(value);
+                        },
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                        color: 'rgba(251, 191, 36, 0.2)',
+                    },
+                    title: {
+                        display: true,
+                        text: 'کیفیت خواب',
+                        color: 'rgba(251, 191, 36, 1)',
+                        font: {
+                            family: 'Tahoma, Arial',
+                            size: 12,
+                        },
+                    },
+                },
+            },
+        }
+    });
+});
+@endif
 </script>
 @endpush
 

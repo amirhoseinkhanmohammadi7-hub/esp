@@ -26,7 +26,47 @@ class SleepLogController extends Controller {
         $avgQuality = SleepLog::getAverageSleepQuality($user->id, 7);
         $todayLog = SleepLog::getTodayLog($user->id);
         
-        return view('sleep.index', compact('sleepLogs', 'avgDuration', 'avgQuality', 'todayLog'));
+        // آماده‌سازی داده‌ها برای نمودار
+        $chartData = $this->prepareChartData($sleepLogs);
+        
+        return view('sleep.index', compact('sleepLogs', 'avgDuration', 'avgQuality', 'todayLog', 'chartData'));
+    }
+    
+    /**
+     * آماده‌سازی داده‌ها برای نمودار
+     */
+    private function prepareChartData($sleepLogs) {
+        $labels = [];
+        $sleepDurations = []; // مدت خواب به ساعت
+        $qualityScores = []; // نمره کیفیت خواب
+        $bedTimes = []; // زمان خواب برای نمایش خط تیره
+        $wakeTimes = []; // زمان بیداری برای نمایش خط تیره
+        
+        // مرتب‌سازی بر اساس تاریخ صعودی (از قدیمی به جدید)
+        $sortedLogs = $sleepLogs->sortBy('log_date');
+        
+        foreach ($sortedLogs as $log) {
+            // فرمت تاریخ برای نمایش در نمودار
+            $labels[] = $log->log_date->format('m/d');
+            
+            // مدت خواب به ساعت
+            $sleepDurations[] = $log->sleep_duration_minutes ? round($log->sleep_duration_minutes / 60, 1) : null;
+            
+            // نمره کیفیت خواب (1-5)
+            $qualityScores[] = $log->sleep_quality;
+            
+            // زمان خواب و بیداری برای نمایش
+            $bedTimes[] = $log->bedtime ?? null;
+            $wakeTimes[] = $log->wake_time ?? null;
+        }
+        
+        return [
+            'labels' => $labels,
+            'sleepDurations' => $sleepDurations,
+            'qualityScores' => $qualityScores,
+            'bedTimes' => $bedTimes,
+            'wakeTimes' => $wakeTimes,
+        ];
     }
     
     /**

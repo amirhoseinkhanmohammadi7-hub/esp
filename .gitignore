@@ -9,73 +9,35 @@ build/
 target/
 
 # Dependencies
-node_modules/
 vendor/
-composer.lock
+node_modules/
+.env
+.env.local
+.env.*
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
-*.swo
-
-# Environment
-.env
-.env.local
-.env.*
 
 # Editors
 .vscode/
 .idea/
 *.swp
-*~
+*.swo
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
 
-# Laravel specific
-bootstrap/cache/
-storage/logs/
-storage/framework/cache/
-storage/framework/sessions/
-storage/framework/views/
-public/storage
-
 # PHP specific
 *.php~
-*.php.bak
+*.bak
 
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# Database
-*.sqlite
-*.db
-
-# Archive files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Laravel specific (if applicable)
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/bootstrap/cache/
 ```
