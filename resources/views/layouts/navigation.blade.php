@@ -9,6 +9,9 @@
                     <a href="{{ route('habits.index') }}" class="text-sm text-white/70 hover:text-white transition {{ request()->routeIs('habits.index') ? 'text-white font-semibold' : '' }}">
                         عادت‌های من
                     </a>
+                    <a href="{{ route('sleep.index') }}" class="text-sm text-white/70 hover:text-white transition {{ request()->routeIs('sleep.*') ? 'text-white font-semibold' : '' }}">
+                        ردیاب خواب
+                    </a>
                     <a href="{{ route('profile.edit') }}" class="text-sm text-white/70 hover:text-white transition {{ request()->routeIs('profile.edit') ? 'text-white font-semibold' : '' }}">
                         پروفایل
                     </a>
@@ -57,6 +60,7 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <a href="{{ route('habits.index') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg">عادت‌های من</a>
+            <a href="{{ route('sleep.index') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg {{ request()->routeIs('sleep.*') ? 'bg-white/10 text-white' : '' }}">ردیاب خواب</a>
             <a href="{{ route('profile.edit') }}" class="block px-3 py-2 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg">پروفایل</a>
         </div>
         <div class="pt-4 pb-1 border-t border-white/10">

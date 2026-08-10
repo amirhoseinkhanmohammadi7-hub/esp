@@ -52,6 +52,9 @@
     .btn-full {
         @apply bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-semibold px-5 py-3 rounded-xl shadow-lg shadow-emerald-500/30 transition-all duration-300 hover:scale-[1.02] text-sm;
     }
+    .btn-sleep {
+        @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-[1.02] text-sm;
+    }
     .btn-secondary {
         @apply bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-medium px-5 py-2.5 rounded-xl transition-all duration-300 text-sm;
     }
@@ -111,6 +114,17 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
+
+    /* Animation for modal fade in */
+    @keyframes fade-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .animate-fade-in {
+        animation: fade-in 0.2s ease-out;
+    }
+
+    [x-cloak] { display: none !important; }
 }
 
 @layer utilities {

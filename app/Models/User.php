@@ -14,6 +14,7 @@ class User extends Authenticatable {
     public function habits() { return $this->hasMany(Habit::class); }
     public function signatures() { return $this->hasMany(Signature::class); }
     public function achievements() { return $this->hasMany(Achievement::class); }
+    public function sleepLogs() { return $this->hasMany(SleepLog::class); }
     public function sentChatRequests() { return $this->hasMany(ChatRequest::class, 'sender_id'); }
     public function receivedChatRequests() { return $this->hasMany(ChatRequest::class, 'receiver_id'); }
     public function sentChats() { return $this->hasMany(Chat::class, 'user_id'); }
