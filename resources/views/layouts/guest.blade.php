@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="fa" dir="rtl">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,20 +10,12 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         
         <style>
-            .auth-gradient-bg {
-                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-            }
-            .auth-card {
-                background: rgba(255, 255, 255, 0.03);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            }
             .auth-input {
                 background: rgba(255, 255, 255, 0.05);
                 border: 1px solid rgba(255, 255, 255, 0.1);
@@ -53,48 +45,14 @@
             .auth-link:hover {
                 color: #a855f7;
             }
-            .floating-shape {
-                position: absolute;
-                border-radius: 50%;
-                filter: blur(60px);
-                opacity: 0.3;
-                animation: float 6s ease-in-out infinite;
-            }
-            .shape-1 {
-                width: 300px;
-                height: 300px;
-                background: #a855f7;
-                top: -100px;
-                left: -100px;
-                animation-delay: 0s;
-            }
-            .shape-2 {
-                width: 400px;
-                height: 400px;
-                background: #ec4899;
-                bottom: -150px;
-                right: -150px;
-                animation-delay: 2s;
-            }
-            .shape-3 {
-                width: 200px;
-                height: 200px;
-                background: #06b6d4;
-                top: 50%;
-                right: -80px;
-                animation-delay: 4s;
-            }
-            @keyframes float {
-                0%, 100% { transform: translate(0, 0) scale(1); }
-                50% { transform: translate(20px, -20px) scale(1.05); }
-            }
         </style>
     </head>
-    <body class="font-sans antialiased auth-gradient-bg min-h-screen relative overflow-hidden">
-        <!-- Floating Background Shapes -->
-        <div class="floating-shape shape-1"></div>
-        <div class="floating-shape shape-2"></div>
-        <div class="floating-shape shape-3"></div>
+    <body class="font-sans antialiased min-h-screen relative overflow-x-hidden font-body">
+        <div class="fixed inset-0 -z-10 bg-slate-950">
+            <div class="absolute top-0 -left-40 w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob"></div>
+            <div class="absolute top-0 -right-40 w-96 h-96 bg-cyan-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" style="animation-delay: 2s"></div>
+            <div class="absolute -bottom-40 left-20 w-96 h-96 bg-pink-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" style="animation-delay: 4s"></div>
+        </div>
         
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-8 sm:pt-0 relative z-10">
             <div class="mb-6 text-center">
@@ -103,11 +61,11 @@
                 </a>
             </div>
 
-            <div class="w-full sm:max-w-md px-8 py-10 auth-card rounded-2xl">
+            <div class="w-full sm:max-w-md px-8 py-10 glass-card rounded-2xl border border-white/10">
                 {{ $slot }}
             </div>
             
-            <p class="mt-8 text-sm text-white/40">&copy; {{ date('Y') }} {{ config('app.name', 'Habit Tracker') }}. All rights reserved.</p>
+            <p class="mt-8 text-sm text-white/40">&copy; {{ date('Y') }} {{ config('app.name', 'Habit Tracker') }}. تمام حقوق محفوظ است.</p>
         </div>
     </body>
 </html>
