@@ -199,6 +199,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/sleep', [SleepLogController::class, 'store'])->name('sleep.store');
     Route::put('/sleep/{sleepLog}', [SleepLogController::class, 'update'])->name('sleep.update');
     Route::delete('/sleep/{sleepLog}', [SleepLogController::class, 'destroy'])->name('sleep.destroy');
+    
+    // API برای بررسی وضعیت ثبت خواب امروز
+    Route::get('/api/sleep-check', function() {
+        $user = auth()->user();
+        $shouldRemind = \App\Models\SleepLog::shouldRemindToLogSleep($user->id);
+        return response()->json([
+            'should_remind' => $shouldRemind,
+            'route' => route('sleep.index')
+        ]);
+    })->name('api.sleep-check');
 
     // عادت‌ها
     Route::get('/habits', [HabitController::class, 'index'])->name('habits.index');

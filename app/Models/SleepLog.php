@@ -96,6 +96,27 @@ class SleepLog extends Model {
     }
 
     /**
+     * بررسی اینکه آیا کاربر خواب دیشب را ثبت کرده است
+     * (برای روز جدید - یعنی کاربر بیدار شده و باید خواب دیشب را ثبت کند)
+     */
+    public static function shouldRemindToLogSleep(int $userId): bool {
+        // بررسی می‌کنیم که آیا امروز لاگ خواب وجود دارد یا نه
+        $todayLog = self::getTodayLog($userId);
+        
+        // اگر لاگ امروز وجود ندارد، باید یادآوری شود
+        if (!$todayLog) {
+            return true;
+        }
+        
+        // اگر لاگ وجود دارد اما زمان خواب و بیداری ثبت نشده، باز هم یادآوری شود
+        if (!$todayLog->bedtime || !$todayLog->wake_time) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
      * میانگین ساعت خواب در X روز اخیر
      */
     public static function getAverageSleepDuration(int $userId, int $days = 7): ?float {
