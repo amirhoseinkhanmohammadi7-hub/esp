@@ -51,6 +51,106 @@
         </div>
     </div>
 
+    <!-- تحلیل چرخه‌های خواب برای آخرین لاگ -->
+    @if($sleepLogs->first() && $sleepLogs->first()->sleep_duration_minutes)
+        @php
+            $sleepAnalysis = $sleepLogs->first()->analyzeSleepCycles();
+        @endphp
+        <div class="glass-card p-6">
+            <h2 class="text-lg font-heading mb-4">🔬 تحلیل چرخه‌های خواب</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- نمایش گرافیکی چرخه‌ها -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-white/60">تعداد چرخه‌های کامل:</span>
+                        <span class="text-xl font-heading text-purple-300">{{ $sleepAnalysis['cycles'] }} چرخه</span>
+                    </div>
+                    
+                    <!-- نوار پیشرفت کیفیت -->
+                    <div class="relative h-4 bg-slate-700 rounded-full overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full transition-all duration-500 
+                            @if($sleepAnalysis['color'] == 'green') bg-gradient-to-r from-green-500 to-emerald-400
+                            @elseif($sleepAnalysis['color'] == 'blue') bg-gradient-to-r from-blue-500 to-cyan-400
+                            @elseif($sleepAnalysis['color'] == 'yellow') bg-gradient-to-r from-yellow-500 to-amber-400
+                            @elseif($sleepAnalysis['color'] == 'orange') bg-gradient-to-r from-orange-500 to-amber-400
+                            @else bg-gradient-to-r from-red-500 to-rose-400
+                            @endif"
+                             style="width: {{ $sleepAnalysis['quality_score'] }}%">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between text-xs text-white/40">
+                        <span>۰٪</span>
+                        <span>{{ $sleepAnalysis['quality_score'] }}٪</span>
+                        <span>۱۰۰٪</span>
+                    </div>
+                    
+                    <!-- نمایش چرخه‌ها -->
+                    <div class="flex gap-2 justify-center flex-wrap">
+                        @for($i = 0; $i < 6; $i++)
+                            <div class="w-12 h-16 rounded-lg flex items-end justify-center pb-2 text-xs font-bold
+                                @if($i < $sleepAnalysis['cycles']) 
+                                    @if($sleepAnalysis['color'] == 'green') bg-green-500/30 text-green-300 border border-green-500/50
+                                    @elseif($sleepAnalysis['color'] == 'blue') bg-blue-500/30 text-blue-300 border border-blue-500/50
+                                    @elseif($sleepAnalysis['color'] == 'yellow') bg-yellow-500/30 text-yellow-300 border border-yellow-500/50
+                                    @elseif($sleepAnalysis['color'] == 'orange') bg-orange-500/30 text-orange-300 border border-orange-500/50
+                                    @else bg-red-500/30 text-red-300 border border-red-500/50
+                                    @endif
+                                @else 
+                                    bg-slate-700/50 text-slate-500 border border-slate-600/30
+                                @endif">
+                                {{ $i + 1 }}
+                            </div>
+                        @endfor
+                    </div>
+                    <p class="text-xs text-white/40 text-center">هر چرخه ≈ ۹۰ دقیقه</p>
+                </div>
+                
+                <!-- اطلاعات و توصیه‌ها -->
+                <div class="space-y-4">
+                    <div class="glass-card p-4 rounded-xl 
+                        @if($sleepAnalysis['color'] == 'green') bg-green-500/10 border border-green-500/30
+                        @elseif($sleepAnalysis['color'] == 'blue') bg-blue-500/10 border border-blue-500/30
+                        @elseif($sleepAnalysis['color'] == 'yellow') bg-yellow-500/10 border border-yellow-500/30
+                        @elseif($sleepAnalysis['color'] == 'orange') bg-orange-500/10 border border-orange-500/30
+                        @else bg-red-500/10 border border-red-500/30
+                        @endif">
+                        <div class="text-2xl mb-2">
+                            @if($sleepAnalysis['color'] == 'green') 🌟
+                            @elseif($sleepAnalysis['color'] == 'blue') 😊
+                            @elseif($sleepAnalysis['color'] == 'yellow') 😐
+                            @elseif($sleepAnalysis['color'] == 'orange') 😴
+                            @else 😫
+                            @endif
+                        </div>
+                        <div class="font-heading text-lg mb-1">{{ $sleepAnalysis['quality_label'] }}</div>
+                        <p class="text-sm text-white/70">{{ $sleepAnalysis['quality_description'] }}</p>
+                    </div>
+                    
+                    <div class="glass-card p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                        <div class="flex items-start gap-3">
+                            <div class="text-xl">💡</div>
+                            <div>
+                                <div class="font-heading text-sm mb-1">توصیه:</div>
+                                <p class="text-xs text-white/70">{{ $sleepAnalysis['recommendation'] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p class="text-xs text-white/40">
+                            مدت خواب: {{ $sleepLogs->first()->getFormattedDuration() }}
+                            @if($sleepAnalysis['cycles'] > 0)
+                                | تکمیل چرخه فعلی: {{ $sleepLogs->first()->getCurrentCycleProgress() }}٪
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- جدول لاگ‌های ۷ روز اخیر -->
     <div class="glass-card overflow-hidden">
         <div class="p-4 border-b border-white/10">
