@@ -5,7 +5,6 @@ use App\Http\Controllers\HabitController;
 use App\Http\Controllers\ShareController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -85,7 +84,7 @@ Route::get('/{username}', function ($username) {
         ->pluck('count', 'reaction_type');
 
     return view('profile.user-page', compact('user', 'reactions', 'reactionsByType'));
-})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|s|api|messages|my-messages|chat|chat-requests)[a-zA-Z0-9_]+');
+})->name('profile.user')->where('username', '(?!login|register|forgot-password|reset-password|verify-email|confirm-password|logout|habits|profile|s|api|messages|my-messages)[a-zA-Z0-9_]+');
 
 // ثبت ری‌اکشن روی نمودار عمومی
 Route::post('/chart/{username}/react', function (\Illuminate\Http\Request $request, $username) {
@@ -202,103 +201,4 @@ Route::middleware('auth')->group(function () {
     Route::post('/habits/{habit}/log/{type}', [HabitController::class, 'log'])->name('habits.log');
     Route::post('/habits/{habit}/complete', [HabitController::class, 'complete'])->name('habits.complete');
     Route::delete('/habits/{habit}', [HabitController::class, 'destroy'])->name('habits.destroy');
-    
-    // نمایش پیام‌های در انتظار تایید (فقط برای صاحب چارت)
-    Route::get('/my-messages', function () {
-        $user = auth()->user();
-        $pendingMessages = \App\Models\Message::where('is_approved', false)->orderBy('created_at', 'desc')->get();
-        $approvedMessages = \App\Models\Message::where('is_approved', true)->orderBy('created_at', 'desc')->get();
-        return view('profile.manage-messages', compact('user', 'pendingMessages', 'approvedMessages'));
-    })->name('profile.manage-messages');
-
-    // تایید پیام
-    Route::post('/messages/{message}/approve', function (\App\Models\Message $message) {
-        if (auth()->id() !== $message->user_id && $message->user_id !== null) {
-            // اگر پیام از طرف مهمان است، فقط صاحب چارت می‌تواند تایید کند
-        }
-        $message->update(['is_approved' => true]);
-        return back()->with('success', '✅ پیام تایید شد!');
-    })->name('messages.approve');
-
-    // رد/حذف پیام
-    Route::delete('/messages/{message}', function (\App\Models\Message $message) {
-        $message->delete();
-        return back()->with('success', '🗑️ پیام حذف شد!');
-    })->name('messages.delete');
-    
-    // Chat routes
-    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/chat/{userId}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/chat/{userId}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
-    Route::post('/chat-request/{userId}', [ChatController::class, 'sendRequest'])->name('chat.request');
-    Route::get('/chat-requests', [ChatController::class, 'getRequests'])->name('chat.requests');
-    Route::post('/chat-request/{requestId}/respond', [ChatController::class, 'respondToRequest'])->name('chat.respond');
-    Route::get('/api/chat/{userId}/messages', [ChatController::class, 'getNewMessages'])->name('chat.api.messages');
-    Route::post('/api/chat/{userId}/typing', [ChatController::class, 'typingStatus'])->name('chat.api.typing');
-    Route::get('/api/chat/{userId}/typing-status', [ChatController::class, 'getTypingStatus'])->name('chat.api.typing-status');
 });
-
-/*
-|--------------------------------------------------------------------------
-| مسیرهای احراز هویت (لاگین، ثبت‌نام، خروج)
-|--------------------------------------------------------------------------\n*/
-
-// ارسال پیام به صاحب چارت
-Route::post('/profile/{username}/message', function (\Illuminate\Http\Request $request, $username) {
-    $validated = $request->validate([
-        'message' => 'required|string|max:500',
-        'sender_name' => 'nullable|string|max:100',
-    ]);
-
-    \App\Models\Message::create([
-        'user_id' => auth()->id(),
-        'sender_name' => $validated['sender_name'] ?? (auth()->id() ? auth()->user()->name : 'مهمان'),
-        'session_id' => session()->getId(),
-        'message' => $validated['message'],
-        'is_approved' => false,
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'پیام شما ارسال شد و پس از تایید نمایش داده می‌شود.'
-    ]);
-})->name('profile.message');
-
-// دریافت پیام‌های تایید شده
-Route::get('/chart/{username}/messages', function ($username) {
-    $messages = \App\Models\Message::where('is_approved', true)
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-    return response()->json(['messages' => $messages]);
-})->name('profile.messages');
-
-// تایید پیام (فقط برای صاحب چارت)
-Route::post('/chart/{username}/message/{message}/approve', function (\Illuminate\Http\Request $request, $username, $messageId) {
-    $user = \App\Models\User::where('name', $username)->firstOrFail();
-
-    if (auth()->id() !== $user->id) {
-        return response()->json(['success' => false, 'message' => 'دسترسی ندارید'], 403);
-    }
-
-    $message = \App\Models\Message::findOrFail($messageId);
-    $message->update(['is_approved' => true]);
-
-    return response()->json(['success' => true]);
-})->name('profile.message.approve')->middleware('auth');
-
-// دریافت پیام‌های در انتظار تایید (برای صاحب چارت)
-Route::get('/chart/{username}/pending-messages', function ($username) {
-    $user = \App\Models\User::where('name', $username)->firstOrFail();
-
-    if (auth()->id() !== $user->id) {
-        return response()->json(['success' => false, 'message' => 'دسترسی ندارید'], 403);
-    }
-
-    $messages = \App\Models\Message::where('is_approved', false)
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-    return response()->json(['messages' => $messages]);
-})->name('profile.pending-messages')->middleware('auth');
-
