@@ -3,8 +3,8 @@
     <x-auth-session-status class="mb-6" :status="session('status')" />
 
     <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-white">{{ __('Welcome Back') }}</h2>
-        <p class="text-white/60 text-sm mt-2">{{ __('Sign in to continue your journey') }}</p>
+        <h2 class="text-2xl font-bold text-white">خوش آمدید</h2>
+        <p class="text-white/60 text-sm mt-2">برای ادامه مسیر خود وارد شوید</p>
     </div>
 
     <form method="POST" action="{{ route('login') }}" class="space-y-6">
@@ -12,7 +12,7 @@
 
         <!-- Email Address -->
         <div>
-            <label for="email" class="block text-sm font-medium text-white/80 mb-2">{{ __('Email Address') }}</label>
+            <label for="email" class="block text-sm font-medium text-white/80 mb-2">آدرس ایمیل</label>
             <input id="email" 
                    type="email" 
                    name="email" 
@@ -27,7 +27,7 @@
 
         <!-- Password -->
         <div>
-            <label for="password" class="block text-sm font-medium text-white/80 mb-2">{{ __('Password') }}</label>
+            <label for="password" class="block text-sm font-medium text-white/80 mb-2">رمز عبور</label>
             <input id="password" 
                    type="password" 
                    name="password" 
@@ -45,27 +45,27 @@
                        type="checkbox" 
                        class="w-4 h-4 rounded border-white/20 bg-white/10 text-purple-500 focus:ring-purple-500 focus:ring-2" 
                        name="remember">
-                <span class="ms-2 text-sm text-white/60">{{ __('Remember me') }}</span>
+                <span class="ms-2 text-sm text-white/60">مرا به خاطر بسپار</span>
             </label>
 
             @if (Route::has('password.request'))
                 <a class="text-sm auth-link hover:text-purple-400" href="{{ route('password.request') }}">
-                    {{ __('Forgot password?') }}
+                    رمز عبور را فراموش کرده‌اید؟
                 </a>
             @endif
         </div>
 
         <!-- Submit Button -->
         <button type="submit" class="auth-btn-gradient w-full py-3.5 rounded-xl text-white font-semibold text-sm">
-            {{ __('Sign In') }}
+            ورود
         </button>
 
         <!-- Register Link -->
         <div class="text-center pt-4 border-t border-white/10">
             <p class="text-sm text-white/60">
-                {{ __("Don't have an account?") }}
+                حساب کاربری ندارید؟
                 <a href="{{ route('register') }}" class="auth-link font-medium hover:text-purple-400">
-                    {{ __('Sign up') }}
+                    ثبت‌نام کنید
                 </a>
             </p>
         </div>
