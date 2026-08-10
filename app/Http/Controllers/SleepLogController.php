@@ -2,170 +2,112 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Sleep\StoreSleepLogRequest;
+use App\Http\Requests\Sleep\UpdateSleepLogRequest;
 use App\Models\SleepLog;
+use App\Services\SleepAnalysisService;
+use App\Services\SleepStatisticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
-class SleepLogController extends Controller {
-    
+class SleepLogController extends Controller 
+{
+    public function __construct(
+        private readonly SleepStatisticsService $statisticsService,
+        private readonly SleepAnalysisService $analysisService
+    ) {}
+
     /**
-     * نمایش صفحه ثبت خواب
+     * Display the sleep tracker dashboard
      */
-    public function index() {
+    public function index() 
+    {
         $user = Auth::user();
         
-        // دریافت لاگ‌های ۷ روز اخیر
-        $sleepLogs = $user->sleepLogs()
-            ->where('log_date', '>=', Carbon::today()->subDays(6))
-            ->orderBy('log_date', 'desc')
-            ->get();
+        // Get dashboard summary from service
+        $summary = $this->statisticsService->getDashboardSummary($user->id, 7);
         
-        // آمار هفته جاری
-        $avgDuration = SleepLog::getAverageSleepDuration($user->id, 7);
-        $avgQuality = SleepLog::getAverageSleepQualityScore($user->id, 7);
-        $todayLog = SleepLog::getTodayLog($user->id);
-        
-        // آماده‌سازی داده‌ها برای نمودار
-        $chartData = $this->prepareChartData($sleepLogs);
-        
-        // گزینه‌های کیفیت خواب
-        $qualityOptions = SleepLog::qualityOptions();
-        
-        return view('sleep.index', compact('sleepLogs', 'avgDuration', 'avgQuality', 'todayLog', 'chartData', 'qualityOptions'));
-    }
-    
-    /**
-     * آماده‌سازی داده‌ها برای نمودار
-     */
-    private function prepareChartData($sleepLogs) {
-        $labels = [];
-        $sleepDurations = []; // مدت خواب به ساعت
-        $qualityScores = []; // نمره کیفیت خواب
-        $bedTimes = []; // زمان خواب برای نمایش خط تیره
-        $wakeTimes = []; // زمان بیداری برای نمایش خط تیره
-        
-        // مرتب‌سازی بر اساس تاریخ صعودی (از قدیمی به جدید)
-        $sortedLogs = $sleepLogs->sortBy('log_date');
-        
-        foreach ($sortedLogs as $log) {
-            // فرمت تاریخ برای نمایش در نمودار
-            $labels[] = $log->log_date->format('m/d');
-            
-            // مدت خواب به ساعت
-            $sleepDurations[] = $log->sleep_duration_minutes ? round($log->sleep_duration_minutes / 60, 1) : null;
-            
-            // نمره کیفیت خواب (1-5)
-            $qualityScores[] = $log->sleep_quality ? SleepLog::qualityScore($log->sleep_quality) : null;
-            
-            // زمان خواب و بیداری برای نمایش
-            $bedTimes[] = $log->bedtime ?? null;
-            $wakeTimes[] = $log->wake_time ?? null;
-        }
-        
-        return [
-            'labels' => $labels,
-            'sleepDurations' => $sleepDurations,
-            'qualityScores' => $qualityScores,
-            'bedTimes' => $bedTimes,
-            'wakeTimes' => $wakeTimes,
-        ];
-    }
-    
-    /**
-     * ذخیره یا بروزرسانی لاگ خواب امروز
-     */
-    public function store(Request $request) {
-        $validated = $request->validate([
-            'bedtime' => 'nullable|date_format:H:i',
-            'wake_time' => 'nullable|date_format:H:i',
-            'sleep_quality' => 'nullable|in:very_poor,poor,fair,good,excellent',
-            'note' => 'nullable|string|max:500',
+        return view('sleep.index', [
+            'sleepLogs' => $this->statisticsService->getRecentLogs($user->id, 7),
+            'avgDuration' => $summary['avg_duration'],
+            'avgQuality' => $summary['avg_quality'],
+            'todayLog' => $summary['today_log'],
+            'chartData' => $summary['chart_data'],
+            'qualityOptions' => SleepLog::qualityOptions(),
         ]);
-        
+    }
+
+    /**
+     * Store a new sleep log or update today's log
+     */
+    public function store(StoreSleepLogRequest $request) 
+    {
         $user = Auth::user();
-        $today = Carbon::today();
+        $validated = $request->validated();
         
-        // پیدا کردن لاگ امروز یا ایجاد جدید
+        // Find or create today's log
         $sleepLog = SleepLog::firstOrCreate(
-            ['user_id' => $user->id, 'log_date' => $today],
+            ['user_id' => $user->id, 'log_date' => now()->toDateString()],
             []
         );
         
-        // بروزرسانی فیلدها
-        if (isset($validated['bedtime'])) {
-            $sleepLog->bedtime = $validated['bedtime'];
-        }
-        if (isset($validated['wake_time'])) {
-            $sleepLog->wake_time = $validated['wake_time'];
-        }
-        if (isset($validated['sleep_quality'])) {
-            $sleepLog->sleep_quality = $validated['sleep_quality'];
-        }
-        if (isset($validated['note'])) {
-            $sleepLog->note = $validated['note'];
-        }
-        
-        // محاسبه مدت خواب
-        if ($sleepLog->bedtime && $sleepLog->wake_time) {
-            $sleepLog->calculateDuration();
-        }
-        
-        $sleepLog->save();
+        // Update fields
+        $this->updateSleepLog($sleepLog, $validated);
         
         return redirect()->route('sleep.index')
             ->with('success', '✅ اطلاعات خواب شما با موفقیت ثبت شد!');
     }
-    
+
     /**
-     * بروزرسانی لاگ خواب برای روزهای گذشته
+     * Update an existing sleep log
      */
-    public function update(Request $request, SleepLog $sleepLog) {
+    public function update(UpdateSleepLogRequest $request, SleepLog $sleepLog) 
+    {
         if ($sleepLog->user_id !== Auth::id()) {
-            abort(403);
+            abort(403, 'Unauthorized access');
         }
         
-        $validated = $request->validate([
-            'bedtime' => 'nullable|date_format:H:i',
-            'wake_time' => 'nullable|date_format:H:i',
-            'sleep_quality' => 'nullable|in:very_poor,poor,fair,good,excellent',
-            'note' => 'nullable|string|max:500',
-        ]);
-        
-        if (isset($validated['bedtime'])) {
-            $sleepLog->bedtime = $validated['bedtime'];
-        }
-        if (isset($validated['wake_time'])) {
-            $sleepLog->wake_time = $validated['wake_time'];
-        }
-        if (isset($validated['sleep_quality'])) {
-            $sleepLog->sleep_quality = $validated['sleep_quality'];
-        }
-        if (isset($validated['note'])) {
-            $sleepLog->note = $validated['note'];
-        }
-        
-        if ($sleepLog->bedtime && $sleepLog->wake_time) {
-            $sleepLog->calculateDuration();
-        }
-        
-        $sleepLog->save();
+        $this->updateSleepLog($sleepLog, $request->validated());
         
         return redirect()->route('sleep.index')
             ->with('success', '✅ اطلاعات خواب بروزرسانی شد!');
     }
-    
+
     /**
-     * حذف لاگ خواب
+     * Delete a sleep log
      */
-    public function destroy(SleepLog $sleepLog) {
+    public function destroy(SleepLog $sleepLog) 
+    {
         if ($sleepLog->user_id !== Auth::id()) {
-            abort(403);
+            abort(403, 'Unauthorized access');
         }
         
         $sleepLog->delete();
         
         return redirect()->route('sleep.index')
             ->with('success', 'اطلاعات خواب حذف شد.');
+    }
+
+    /**
+     * Helper method to update sleep log with calculated duration
+     */
+    private function updateSleepLog(SleepLog $sleepLog, array $data): void 
+    {
+        foreach ($data as $key => $value) {
+            if ($value !== null) {
+                $sleepLog->{$key} = $value;
+            }
+        }
+        
+        // Calculate duration if both times are available
+        if ($sleepLog->bedtime && $sleepLog->wake_time) {
+            $sleepLog->sleep_duration_minutes = $this->analysisService->calculateDuration(
+                $sleepLog->log_date->toDateString(),
+                $sleepLog->bedtime,
+                $sleepLog->wake_time
+            );
+        }
+        
+        $sleepLog->save();
     }
 }
